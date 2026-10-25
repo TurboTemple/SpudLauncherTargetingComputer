@@ -4,6 +4,7 @@ import { terminalSpeed } from '../core/atmosphere';
 import { G } from '../core/ballistics';
 import { LIMITS, newId } from '../data/defaults';
 import type { CannonProfile, PowerSetting, Projectile } from '../data/model';
+import { SATELLITE_PROVIDERS, satelliteLayer, type SatelliteProviderId } from '../data/satellite';
 import {
   addCannon,
   addProjectile,
@@ -235,9 +236,67 @@ function SettingsCard() {
         ]}
         onChange={(v) => updateSettings({ theme: v })}
       />
-      <TextField label="Satellite tile URL (optional)" value={s.satelliteUrl} onChange={(v) => updateSettings({ satelliteUrl: v.trim() })} />
-      <TextField label="Satellite attribution" value={s.satelliteAttribution} onChange={(v) => updateSettings({ satelliteAttribution: v })} />
-      <p class="muted small">Only add a satellite layer whose terms allow this use, with its attribution.</p>
+    </Card>
+  );
+}
+
+function SatelliteCard() {
+  const s = settings.value;
+  const id = s.satelliteProvider;
+  const preset = id === 'maptiler' || id === 'esri' ? SATELLITE_PROVIDERS[id] : null;
+  const ready = satelliteLayer(s) !== null;
+  return (
+    <Card title="Satellite imagery">
+      <p class="muted small">Satellite view is the easiest way to mark where a shot landed. Switch between map and satellite with the SAT button on the map.</p>
+      <Select<SatelliteProviderId>
+        label="Provider"
+        value={id}
+        options={[
+          { value: 'none', label: 'Off' },
+          { value: 'maptiler', label: 'MapTiler (free key, non-commercial)' },
+          { value: 'esri', label: 'Esri World Imagery (ArcGIS key)' },
+          { value: 'custom', label: 'Custom tile URL' },
+        ]}
+        onChange={(v) => updateSettings({ satelliteProvider: v, ...(v === 'none' ? { mapBase: 'map' as const } : {}) })}
+      />
+      {preset && (
+        <>
+          <TextField
+            label={preset.keyLabel}
+            value={id === 'maptiler' ? s.maptilerKey : s.esriKey}
+            onChange={(v) => updateSettings(id === 'maptiler' ? { maptilerKey: v.trim() } : { esriKey: v.trim() })}
+          />
+          <p class="small">
+            <a href={preset.signupUrl} target="_blank" rel="noopener">
+              Get a key
+            </a>{' '}
+            ·{' '}
+            <a href={preset.termsUrl} target="_blank" rel="noopener">
+              Terms
+            </a>
+          </p>
+          <p class="muted small">{preset.terms}</p>
+          <p class="muted small">
+            The key stays on this phone and is left out of exports. In your provider account, restrict it to this site’s address ({location.origin}) so
+            nobody else can use it.
+          </p>
+        </>
+      )}
+      {id === 'custom' && (
+        <>
+          <TextField label="Tile URL ({z}/{x}/{y})" value={s.satelliteUrl} onChange={(v) => updateSettings({ satelliteUrl: v.trim() })} />
+          <TextField label="Attribution" value={s.satelliteAttribution} onChange={(v) => updateSettings({ satelliteAttribution: v })} />
+          <p class="muted small">Only use a source whose terms allow this use, and give its attribution exactly as it asks.</p>
+        </>
+      )}
+      {id !== 'none' && (
+        <Toggle
+          label="Show satellite now"
+          checked={ready && s.mapBase === 'satellite'}
+          onChange={(v) => updateSettings({ mapBase: v ? 'satellite' : 'map' })}
+          hint={ready ? undefined : '(needs a key or URL first)'}
+        />
+      )}
     </Card>
   );
 }
@@ -295,6 +354,7 @@ export function SetupPanel() {
       <HeadingCard />
       <WeatherCard />
       <SettingsCard />
+      <SatelliteCard />
       <SessionCard />
       {settings.value.devMode && <DevPanel />}
       <AboutCard />

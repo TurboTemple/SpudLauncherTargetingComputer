@@ -1,5 +1,7 @@
 # Spud Trajectory
 
+**Live app:** https://turbotemple.github.io/SpudLauncherTargetingComputer/
+
 A phone web app that clips to a potato cannon's barrel and shows, live on a map, where the potato will land. It reads the barrel's tilt and direction from the phone's sensors, takes position from GPS, simulates the flight with air drag over real ground heights, and draws a predicted landing point with 50% and 90% landing zones.
 
 | Aim | Target |
@@ -16,6 +18,7 @@ A phone web app that clips to a potato cannon's barrel and shows, live on a map,
 - **Calibration**: log shots (lock, fire, landed, mark), then fit launch speed per power setting, drag scale per projectile and compass bias per session, each with standard errors, and a residual map.
 - **Heading**: per-platform compass handling (Android absolute orientation, iOS `webkitCompassHeading`), WMM2025 declination, landmark sighting, and a metal-interference warning.
 - **Field-ready**: works offline once a field has been opened, installs to the home screen, keeps the screen awake, and uses a high-contrast theme in portrait and landscape.
+- **Satellite view** for marking impacts, from MapTiler or Esri with your own key (see below).
 - **Private**: no server and no accounts. Everything stays in IndexedDB on the phone, with JSON and CSV export.
 
 ## Quick start
@@ -48,7 +51,24 @@ To try the app without a phone, open Setup › Developer mode › Sensor simulat
 
 `npm run build` produces a static site in `dist/` for any HTTPS host (Cloudflare Pages, Netlify, GitHub Pages). Set `BASE_PATH=/sub-path/` when serving from a sub-path.
 
-For GitHub Pages, enable Pages with source "GitHub Actions", then run the **Deploy to GitHub Pages** workflow. CI runs lint, typecheck, tests and the build on every push.
+GitHub Pages (source "GitHub Actions") redeploys on every push to the default branch; the **Deploy to GitHub Pages** workflow can also be run by hand. CI runs lint, typecheck, tests and the build on every push.
+
+## Satellite imagery
+
+Satellite view makes it much easier to mark where a shot landed. No provider offers imagery sharp enough for that without an account, so the app ships with satellite off. In Setup › Satellite imagery, pick a provider and paste your own key. The key stays on the phone and is left out of exports. Toggle between map and satellite with the **SAT** button on the map.
+
+| Provider | Key | Free allowance | Offline | Notes |
+| --- | --- | --- | --- | --- |
+| [MapTiler](https://cloud.maptiler.com/account/keys/) (recommended) | Free account, no card | 100,000 requests/month; service pauses (no bill) when used up | Viewed tiles kept on the phone for 7 days | Free plan is non-commercial only; MapTiler logo shown on the map |
+| [Esri World Imagery](https://location.arcgis.com/) | ArcGIS Location Platform API key | 2M tiles/month, then $0.15 per 1,000 | Never cached: needs signal | Usually the sharpest imagery; "Powered by Esri" shown |
+| Custom tile URL | Up to you | — | Not cached | Check the source's terms and give its attribution |
+
+In your provider account, restrict the key to the site's address (for example `https://turbotemple.github.io`) so nobody can reuse it.
+
+Terms checked on 25 October 2026:
+- **MapTiler** ([Cloud terms](https://www.maptiler.com/terms/cloud/), [pricing](https://www.maptiler.com/cloud/pricing/)): free-plan use is non-commercial (§1.2). Results may be stored in a temporary personal cache for one end user (§5.7). Attribution must show on screen (§5.4), and the free plan requires the MapTiler logo ([attribution guide](https://docs.maptiler.com/guides/map-design/attribution/add-attribution)).
+- **Esri** ([terms summary](https://www.esri.com/content/dam/arcgisonline/docs/tou_summary.pdf), [pricing](https://location.arcgis.com/pricing/)): use requires an ArcGIS account. Tiles may not be harvested for offline use except through Esri's own content packages, so this app never caches them. Esri and its data providers must be credited.
+- Key-free alternatives such as Sentinel-2 mosaics are 10 m per pixel, too coarse to mark a landing.
 
 ## How it is built
 
@@ -123,7 +143,8 @@ Places where the implementation adds to or departs from the technical spec:
   - `CannonProfile.mountTiltSigmaDeg`: from the reversal readings; feeds the elevation spread.
   - `Session.headingBiasSource`: landmark or fit; landmark sighting narrows the azimuth spread to 1°.
 - **Fitted values pinned at a bound** are flagged, so contradictory marks or flight times are visible.
-- **The satellite layer** is a user-supplied tile URL and attribution. It ships empty, because the terms of each provider need checking first.
+- **Satellite layer**: MapTiler and Esri presets with the user's own key, or a custom URL (see Satellite imagery).
+- **Tiles load in CORS mode**, so the offline cache stores real responses rather than opaque ones, which would each count several MB against storage quota.
 
 ## Data sources and attribution
 

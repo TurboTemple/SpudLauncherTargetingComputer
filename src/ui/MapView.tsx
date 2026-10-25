@@ -9,9 +9,10 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef } from 'preact/hooks';
 import { ellipsePolygon } from '../core/uncertainty';
+import { satelliteLayer, type SatelliteLayerConfig } from '../data/satellite';
 import { TERRAIN_ATTRIBUTION } from '../data/terrainTiles';
 import { latLonOf, type LatLon } from '../geoDeg';
-import { markImpactAt, pickLandmark, setLaunchFromMap } from '../state/actions';
+import { markImpactAt, pickLandmark, setLaunchFromMap, updateSettings } from '../state/actions';
 import {
   aim,
   fitResult,
@@ -47,9 +48,11 @@ export function MapView() {
 
   useEffect(() => {
     const start = launch.peek() ?? lastFix.peek();
-    const map = L.map(el.current!, { zoomControl: false, attributionControl: true }).setView(start ? ll(start) : [52.5, -1.5], start ? 17 : 6);
+    // Zoom past the tiles' native 19 (they are upscaled) to place marks precisely.
+    const map = L.map(el.current!, { zoomControl: false, attributionControl: true, maxZoom: 21 }).setView(start ? ll(start) : [52.5, -1.5], start ? 17 : 6);
     L.control.zoom({ position: 'topright' }).addTo(map);
-    const osm = L.tileLayer(OSM_URL, { maxZoom: 19, attribution: OSM_ATTRIBUTION }).addTo(map);
+    // CORS mode (OSM sends Access-Control-Allow-Origin) so the offline cache stores real responses.
+    const osm = L.tileLayer(OSM_URL, { maxNativeZoom: 19, maxZoom: 21, attribution: OSM_ATTRIBUTION, crossOrigin: true }).addTo(map);
     map.attributionControl.addAttribution(TERRAIN_ATTRIBUTION);
     const canvas = L.canvas({ padding: 0.3 });
 
@@ -130,23 +133,65 @@ export function MapView() {
     });
     new Recenter({ position: 'topright' }).addTo(map);
 
+    // Satellite base layer, its required logo, and a big MAP/SAT toggle.
     let satellite: L.TileLayer | null = null;
-    let layersCtl: L.Control.Layers | null = null;
+    let satelliteKey = '';
+    let logo: L.Control | null = null;
+    const satButton = L.DomUtil.create('button', 'map-btn map-btn-text');
+    satButton.type = 'button';
+    L.DomEvent.disableClickPropagation(satButton);
+    satButton.onclick = () => updateSettings({ mapBase: settings.peek().mapBase === 'satellite' ? 'map' : 'satellite' });
+    const SatToggle = L.Control.extend({ onAdd: () => satButton });
+    new SatToggle({ position: 'topright' }).addTo(map);
+    const makeSatellite = (cfg: SatelliteLayerConfig) => {
+      const layer = L.tileLayer(cfg.url, { maxNativeZoom: cfg.maxNativeZoom, maxZoom: 21, attribution: cfg.attribution, crossOrigin: true });
+      let warned = false;
+      layer.on('tileerror', () => {
+        if (warned) return;
+        warned = true;
+        toast(navigator.onLine ? 'Satellite tiles are not loading: check the key in Setup' : 'No signal: satellite tiles not cached here', 'warn', 6000);
+      });
+      return layer;
+    };
+    const makeLogo = (l: NonNullable<SatelliteLayerConfig['logo']>) => {
+      const Logo = L.Control.extend({
+        onAdd() {
+          const a = L.DomUtil.create('a', 'provider-logo');
+          a.href = l.href;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          const img = L.DomUtil.create('img', '', a);
+          img.src = l.src;
+          img.alt = l.alt;
+          return a;
+        },
+      });
+      return new Logo({ position: 'bottomleft' });
+    };
 
     const disposers = [
       effect(() => {
         const s = settings.value;
         launchMarker.dragging?.[s.devMode ? 'enable' : 'disable']();
-        if (s.satelliteUrl && !satellite) {
-          satellite = L.tileLayer(s.satelliteUrl, { maxZoom: 19, attribution: s.satelliteAttribution || 'Satellite imagery' });
-          layersCtl = L.control.layers({ Map: osm, Satellite: satellite }, undefined, { position: 'topleft' }).addTo(map);
-        } else if (!s.satelliteUrl && satellite) {
-          satellite.remove();
-          layersCtl?.remove();
-          satellite = null;
-          layersCtl = null;
-          if (!map.hasLayer(osm)) osm.addTo(map);
+        const cfg = satelliteLayer(s);
+        const key = cfg ? `${cfg.url}|${cfg.attribution}` : '';
+        if (key !== satelliteKey) {
+          satellite?.remove();
+          logo?.remove();
+          satellite = cfg ? makeSatellite(cfg) : null;
+          logo = cfg?.logo ? makeLogo(cfg.logo) : null;
+          satelliteKey = key;
         }
+        const useSat = !!satellite && s.mapBase === 'satellite';
+        show(osm, !useSat);
+        if (satellite) show(satellite, useSat);
+        if (logo) {
+          if (useSat) logo.addTo(map);
+          else logo.remove();
+        }
+        satButton.style.display = cfg ? '' : 'none';
+        satButton.textContent = useSat ? 'MAP' : 'SAT';
+        satButton.title = useSat ? 'Show the street map' : 'Show satellite imagery';
       }),
       effect(() => {
         const f = lastFix.value;

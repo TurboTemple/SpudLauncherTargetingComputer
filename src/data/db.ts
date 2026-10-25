@@ -2,6 +2,7 @@
 
 import { openDB, type DBSchema, type IDBPDatabase, type IDBPTransaction, type StoreNames } from 'idb';
 import type { AppSettings, CannonProfile, ExportBundle, Projectile, Session, Shot } from './model';
+import { SECRET_SETTINGS } from './satellite';
 
 interface SpudDB extends DBSchema {
   profiles: { key: string; value: CannonProfile };
@@ -90,6 +91,7 @@ export async function saveSettings(s: Partial<AppSettings>): Promise<void> {
 
 export async function exportAll(): Promise<ExportBundle> {
   const [profiles, projectiles, sessions, shots, settings] = await Promise.all([allProfiles(), allProjectiles(), allSessions(), allShots(), loadSettings()]);
+  for (const k of SECRET_SETTINGS) delete settings[k];
   return { app: 'spud-app', schemaVersion: DB_VERSION, exportedAt: new Date().toISOString(), profiles, projectiles, sessions, shots, settings };
 }
 
@@ -105,7 +107,9 @@ export async function importAll(bundle: unknown): Promise<{ shots: number }> {
   for (const p of b.projectiles ?? []) ops.push(tx.objectStore('projectiles').put(p));
   for (const s of b.sessions ?? []) ops.push(tx.objectStore('sessions').put(s));
   for (const s of b.shots) ops.push(tx.objectStore('shots').put(s));
-  for (const [key, value] of Object.entries(b.settings ?? {})) ops.push(tx.objectStore('settings').put({ key, value }));
+  for (const [key, value] of Object.entries(b.settings ?? {})) {
+    if (!(SECRET_SETTINGS as readonly string[]).includes(key)) ops.push(tx.objectStore('settings').put({ key, value }));
+  }
   await Promise.all([...ops, tx.done]);
   return { shots: b.shots.length };
 }

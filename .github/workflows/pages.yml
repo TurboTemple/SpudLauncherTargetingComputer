@@ -1,8 +1,9 @@
-# Deploys the app to GitHub Pages. Enable Pages first (Settings › Pages › Source: GitHub Actions),
-# then run this workflow by hand, or add a `push` trigger to deploy on every merge.
+# Deploys the app to GitHub Pages (Settings › Pages › Source: GitHub Actions) on every push to
+# the default branch, or by hand from the Actions tab.
 name: Deploy to GitHub Pages
 
 on:
+  push:
   workflow_dispatch:
 
 permissions:
@@ -16,6 +17,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name == 'workflow_dispatch' || github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

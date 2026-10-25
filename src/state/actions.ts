@@ -63,6 +63,8 @@ export async function bootstrap(): Promise<void> {
     ps.push(p);
   }
   const s: AppSettings = { ...DEFAULT_SETTINGS, ...stored };
+  // Settings saved before satellite presets existed: a tile URL means the custom provider.
+  if (stored.satelliteProvider === undefined && s.satelliteUrl) s.satelliteProvider = 'custom';
   const c = cs.find((x) => x.id === s.activeCannonId) ?? cs[0]!;
   s.activeCannonId = c.id;
   if (!c.settings.some((x) => x.id === s.activeSettingId)) s.activeSettingId = c.settings[0]?.id ?? '';

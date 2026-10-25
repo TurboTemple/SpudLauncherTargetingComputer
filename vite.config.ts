@@ -16,7 +16,9 @@ const tileCache = (name: string, urlPattern: RegExp) => ({
   options: {
     cacheName: name,
     expiration: { maxEntries: 2000, maxAgeSeconds: 30 * 24 * 3600 },
-    cacheableResponse: { statuses: [0, 200] },
+    // Tiles load in CORS mode, so only real 200s are cached; opaque responses would each count
+    // as several MB against the browser's storage quota.
+    cacheableResponse: { statuses: [200] },
   },
 });
 
@@ -39,6 +41,17 @@ export default defineConfig({
             runtimeCaching: [
               tileCache('osm-tiles', /^https:\/\/tile\.openstreetmap\.org\/.*/),
               tileCache('terrain-tiles', /^https:\/\/s3\.amazonaws\.com\/elevation-tiles-prod\/terrarium\/.*/),
+              // MapTiler allows a temporary per-user cache (Cloud terms §5.7): keep viewed tiles a week.
+              // Esri imagery is deliberately absent: its terms forbid keeping tiles for offline use.
+              {
+                urlPattern: /^https:\/\/api\.maptiler\.com\/(maps\/satellite\/|resources\/).*/,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'maptiler-satellite',
+                  expiration: { maxEntries: 1000, maxAgeSeconds: 7 * 24 * 3600 },
+                  cacheableResponse: { statuses: [200] },
+                },
+              },
               {
                 urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/,
                 handler: 'NetworkFirst',

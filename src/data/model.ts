@@ -3,6 +3,8 @@
  * can re-derive everything from scratch. Degrees here (storage and UI edge); core/ is radians.
  */
 
+import type { SatelliteProviderId } from './satellite';
+
 export interface CannonProfile {
   id: string;
   name: string;
@@ -99,8 +101,15 @@ export interface AppSettings {
   windSigmaMs: number;
   audio: boolean;
   theme: 'light' | 'dark';
+  satelliteProvider: SatelliteProviderId;
+  /** Provider API keys: kept on this phone only, never exported. */
+  maptilerKey: string;
+  esriKey: string;
+  /** Custom provider. */
   satelliteUrl: string;
   satelliteAttribution: string;
+  /** Base layer last chosen on the map. */
+  mapBase: 'map' | 'satellite';
   devMode: boolean;
   activeCannonId: string;
   activeSettingId: string;
