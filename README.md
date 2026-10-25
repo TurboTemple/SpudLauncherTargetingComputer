@@ -95,6 +95,8 @@ Terms checked on 25 October 2026:
 
 ## Skins
 
+<img src="docs/skins.png" width="760" alt="The Aim screen in each skin: plain, modern military, spy and 1980s military, by day (top row) and night (bottom row)">
+
 Pick one in Setup › Skin, which shows a live preview of each. The Light or dark setting there picks the day or night version, and the map is tinted to match unless you turn that off (for example to mark impacts on true-colour satellite imagery).
 
 | Skin | Light (day) | Dark (night) | Extras |
