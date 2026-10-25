@@ -41,6 +41,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   gustWidening: true,
   audio: true,
   theme: 'light',
+  skin: 'plain',
+  tintMap: true,
   satelliteProvider: 'none',
   maptilerKey: '',
   esriKey: '',

@@ -41,6 +41,7 @@ A phone web app that clips to a potato cannon's barrel and shows, live on a map,
 - **Shot statistics**: a scatter of where shots landed relative to their predictions (with mean miss, CEP and 90% radius), and launch speed per shot through the day, each with a table view.
 - **Target games**: place a target, add players, and score each shot on rings (2 m = 10 points, 5 m = 5, 10 m = 2). Turns rotate automatically and the leaderboard breaks ties on the closest landing.
 - **Shot card**: a shareable 1080 × 1350 image of a shot or the current prediction, with the map, the arc and the numbers.
+- **Skins**: plain (the default), modern military, spy and 1980s military, each with a light (day) and dark (night) version. See Skins below.
 - **Private**: no server and no accounts. Everything stays in IndexedDB on the phone, with JSON and CSV export.
 
 ## Quick start
@@ -92,6 +93,21 @@ Terms checked on 25 October 2026:
 - **Esri** ([terms summary](https://www.esri.com/content/dam/arcgisonline/docs/tou_summary.pdf), [pricing](https://location.arcgis.com/pricing/)): use requires an ArcGIS account. Tiles may not be harvested for offline use except through Esri's own content packages, so this app never caches them. Esri and its data providers must be credited.
 - Key-free alternatives such as Sentinel-2 mosaics are 10 m per pixel, too coarse to mark a landing.
 
+## Skins
+
+Pick one in Setup › Skin, which shows a live preview of each. The Light or dark setting there picks the day or night version, and the map is tinted to match unless you turn that off (for example to mark impacts on true-colour satellite imagery).
+
+| Skin | Light (day) | Dark (night) | Extras |
+| --- | --- | --- | --- |
+| Plain | White, black, blue | Black, white, blue | — |
+| Modern military | Sand and olive drab, condensed caps | Night olive | "Unclassified" strip, angles in mils too, countdown calls "Shot, over" and "Splash, over" |
+| Spy | Typewritten dossier with a "Top secret" stamp | Agency display with corner brackets | Countdown says "Package away" and "Delivered" |
+| 1980s military | LCD handset with seven-segment digits | Green-screen terminal with scan lines | "NATO restricted" strip, mils, "Shot" and "Splash" calls |
+
+Mils are NATO mils (6,400 to a circle). "Splash" comes 5 s before the predicted landing, as an artillery fire direction centre calls it, or halfway through shorter flights; the landing itself is a tone. Safety colours stay the same in every skin: warnings are amber, dangers and the keep-clear line red. Every skin's text meets WCAG AA contrast (body text 7:1), and each chart palette passes the colour-vision checks on its own card colour.
+
+The skin fonts are fetched only when a skin uses them and are then kept for offline use.
+
 ## LIDAR terrain (England)
 
 When the launch point is in England, the app asks the Environment Agency's [LIDAR Composite](https://environment.data.gov.uk/survey) 1 m WCS service for two 1 km squares, sampled at 2 m (no key needed):
@@ -103,7 +119,7 @@ Both are cached on the phone for 90 days. Turn LIDAR off in Setup › Aiming and
 
 ## How it is built
 
-TypeScript (strict), Vite, Preact with signals, Leaflet, `idb`, `vite-plugin-pwa` (Workbox), `geomagnetism` (WMM2025), `uqr` (QR codes) and `jsqr` (QR scanning where the browser has no `BarcodeDetector`, loaded only when needed).
+TypeScript (strict), Vite, Preact with signals, Leaflet, `idb`, `vite-plugin-pwa` (Workbox), `geomagnetism` (WMM2025), `uqr` (QR codes) and `jsqr` (QR scanning where the browser has no `BarcodeDetector`, loaded only when needed). Skin fonts come from Fontsource and `dseg`.
 
 ```
 src/
@@ -124,7 +140,8 @@ src/
                EA LIDAR loaders, spotter link encoding
   worker/      solver.worker.ts runs core/ off the main thread; latest request wins
   state/       signals store, sensor pipeline, solver driver, user actions
-  ui/          Preact screens (Aim, Target, Shots, Setup) and Leaflet layers
+  ui/          Preact screens (Aim, Target, Shots, Setup) and Leaflet layers;
+               styles.css uses tokens that skins.css sets per skin and theme
 test/          Vitest suites + reference/refsolver.py
 ```
 
@@ -196,3 +213,4 @@ Places where the implementation adds to or departs from the technical spec:
 - LIDAR: © Environment Agency copyright and/or database right 2026. All rights reserved. Used under the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/), credited on the map whenever LIDAR is in use. The test fixtures are small extracts of the same data.
 - Weather: [Open-Meteo](https://open-meteo.com/en/docs).
 - Declination: World Magnetic Model 2025 via [`geomagnetism`](https://www.npmjs.com/package/geomagnetism).
+- Skin fonts, all under the [SIL Open Font License 1.1](https://openfontlicense.org): Barlow Condensed, IBM Plex Mono, Courier Prime and VT323 (via [Fontsource](https://fontsource.org)), and DSEG7 Classic by keshikan (via [`dseg`](https://github.com/keshikan/DSEG)).

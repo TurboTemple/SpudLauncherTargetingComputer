@@ -28,6 +28,7 @@ import { compassPoint, fmt } from './format';
 import { SideView } from './SideView';
 import { StatusChips } from './StatusChips';
 import { shareCurrentPrediction } from './shareCards';
+import { skinById, toMils } from './skins';
 import { WindPanel } from './WindPanel';
 
 function Readout({ label, value, unit, sub }: { label: string; value: string; unit: string; sub?: string }) {
@@ -94,13 +95,19 @@ export function AimPanel() {
   const avg = launchAveraging.value;
   const mc = monteCarlo.value;
   const top = z?.contributions[0];
+  const mils = skinById(settings.value.skin).mils;
 
   return (
     <div class="panel-inner">
       <StartSensorsButton />
       <div class="readouts">
-        <Readout label="Elevation" value={fmt(a?.elevationDeg)} unit="°" />
-        <Readout label="Azimuth" value={fmt(a?.azimuthDeg, 0)} unit={a ? `° ${compassPoint(a.azimuthDeg)}` : '°'} />
+        <Readout label="Elevation" value={fmt(a?.elevationDeg)} unit="°" sub={mils && a ? `${fmt(toMils(a.elevationDeg), 0)} mil` : undefined} />
+        <Readout
+          label="Azimuth"
+          value={fmt(a?.azimuthDeg, 0)}
+          unit={a ? `° ${compassPoint(a.azimuthDeg)}` : '°'}
+          sub={mils && a ? `${fmt(toMils(a.azimuthDeg), 0)} mil` : undefined}
+        />
         <Readout label="Range" value={fmt(pr?.range, 0)} unit="m" />
         <Readout label="Flight" value={fmt(pr?.tof)} unit="s" />
         <Readout label="Apex" value={fmt(pr?.apex[2], 0)} unit="m" />

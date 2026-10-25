@@ -63,6 +63,12 @@ export default defineConfig({
                   cacheableResponse: { statuses: [200] },
                 },
               },
+              // Skin fonts are not precached (most people keep the plain skin); each is kept once used.
+              {
+                urlPattern: ({ request, sameOrigin }) => sameOrigin && request.destination === 'font',
+                handler: 'CacheFirst',
+                options: { cacheName: 'fonts', expiration: { maxEntries: 30 }, cacheableResponse: { statuses: [200] } },
+              },
               {
                 urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/,
                 handler: 'NetworkFirst',

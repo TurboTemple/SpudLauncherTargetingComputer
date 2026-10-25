@@ -1,0 +1,783 @@
+/*
+ * Skins. Every colour, font and shape the app uses is a token defined here, per skin and per
+ * theme (light = day, dark = night). Token blocks match <html data-skin data-theme> and also any
+ * element carrying data-skin, so the picker's preview tiles render in their own skin.
+ * Text pairs meet WCAG AA (body text 7:1 on the background), and each chart palette passes the
+ * colour-vision checks against its card surface.
+ * Decorations (the last part) are scoped to :root so they never leak into the preview tiles.
+ */
+
+/* --- Tokens ------------------------------------------------------------------------- */
+
+:root,
+[data-skin='plain'] {
+  --map-filter: none;
+  --map-bg: #dddddd;
+  --map-ink: #000000;
+  --map-halo: #ffffff;
+  --map-ctl-bg: #ffffff;
+  --map-ctl-fg: #000000;
+  --keep-clear: #d00000;
+  --mark: #00b33c;
+  --gps: #0a84ff;
+  --trees: #2f8f3a;
+  --warn-ink: #000000;
+  --bg: #ffffff;
+  --fg: #000000;
+  --muted: #3a3a3a;
+  --card: #f1f1f1;
+  --line: #000000;
+  --accent: #0040e0;
+  --accent-fg: #ffffff;
+  --ok: #00701f;
+  --ok-bg: #d6f5dc;
+  --warn: #6b4500;
+  --warn-bg: #ffd84d;
+  --bad: #ffffff;
+  --bad-bg: #c40000;
+  --impact: #e00000;
+  --e50: #e00000;
+  --e90: #ff7a00;
+  --track: #0040e0;
+  --target: #8b00d6;
+  --ground: #b9a27a;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --grid: #c9c9c6;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-label: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-data: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-size: 17px;
+  --data-scale: 1;
+  --readout-min: 6.6rem;
+  --weight-label: 700;
+  --weight-data: 800;
+  --weight-heavy: 900;
+  --radius: 10px;
+  --radius-sm: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+  --label-case: none;
+  --label-spacing: normal;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'],
+[data-theme='dark'] [data-skin='plain'] {
+  --map-filter: none;
+  --map-bg: #dddddd;
+  --map-ink: #000000;
+  --map-halo: #ffffff;
+  --map-ctl-bg: #ffffff;
+  --map-ctl-fg: #000000;
+  --keep-clear: #d00000;
+  --mark: #00b33c;
+  --gps: #0a84ff;
+  --trees: #2f8f3a;
+  --warn-ink: #000000;
+  --bg: #000000;
+  --fg: #ffffff;
+  --muted: #cfcfcf;
+  --card: #161616;
+  --line: #ffffff;
+  --accent: #4da3ff;
+  --accent-fg: #000000;
+  --ok: #6dff8e;
+  --ok-bg: #0e3a18;
+  --warn: #000000;
+  --warn-bg: #ffd84d;
+  --bad: #ffffff;
+  --bad-bg: #d40000;
+  --impact: #ff4d4d;
+  --e50: #ff4d4d;
+  --e90: #ffa64d;
+  --track: #4da3ff;
+  --target: #d58cff;
+  --ground: #6e5a3a;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --grid: #3a3a38;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-label: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-data: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-size: 17px;
+  --data-scale: 1;
+  --readout-min: 6.6rem;
+  --weight-label: 700;
+  --weight-data: 800;
+  --weight-heavy: 900;
+  --radius: 10px;
+  --radius-sm: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+  --label-case: none;
+  --label-spacing: normal;
+  color-scheme: dark;
+}
+
+[data-skin='military'] {
+  --map-filter: grayscale(1) sepia(0.35) contrast(1.05) brightness(0.97);
+  --map-bg: #d8d0b8;
+  --map-ink: #000000;
+  --map-halo: #ffffff;
+  --map-ctl-bg: #e9e4d4;
+  --map-ctl-fg: #14170f;
+  --keep-clear: #c00000;
+  --mark: #1f7a1f;
+  --gps: #0a84ff;
+  --trees: #4a6b2a;
+  --warn-ink: #000000;
+  --bg: #e9e4d4;
+  --fg: #14170f;
+  --muted: #45473a;
+  --card: #dcd5bf;
+  --line: #2c3020;
+  --accent: #3f4a1f;
+  --accent-fg: #f1eedf;
+  --ok: #1f5e1f;
+  --ok-bg: #c9dcb4;
+  --warn: #5c3d00;
+  --warn-bg: #e8b52a;
+  --bad: #ffffff;
+  --bad-bg: #b3261e;
+  --impact: #c2190f;
+  --e50: #c2190f;
+  --e90: #d9661a;
+  --track: #1546b3;
+  --target: #7a1fa2;
+  --ground: #b5a582;
+  --series-1: #2c62c4;
+  --series-2: #c2531a;
+  --series-3: #12866f;
+  --grid: #bdb59c;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-label: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-data: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-size: 17px;
+  --data-scale: 1.15;
+  --readout-min: 6.6rem;
+  --weight-label: 700;
+  --weight-data: 700;
+  --weight-heavy: 700;
+  --radius: 3px;
+  --radius-sm: 2px;
+  --radius-lg: 4px;
+  --radius-pill: 3px;
+  --label-case: uppercase;
+  --label-spacing: 0.06em;
+  color-scheme: light;
+}
+
+[data-theme='dark'][data-skin='military'],
+[data-theme='dark'] [data-skin='military'] {
+  --map-filter: grayscale(1) invert(1) sepia(0.45) hue-rotate(30deg) brightness(0.7) contrast(1.15);
+  --map-bg: #1a1d14;
+  --map-ink: #e8ecd8;
+  --map-halo: #0c0e09;
+  --map-ctl-bg: #171b12;
+  --map-ctl-fg: #dfe5cf;
+  --keep-clear: #ff4d4d;
+  --mark: #8fd16a;
+  --gps: #6fb6ff;
+  --trees: #56763a;
+  --warn-ink: #000000;
+  --bg: #0c0e09;
+  --fg: #dfe5cf;
+  --muted: #a3ab8c;
+  --card: #171b12;
+  --line: #7d8a5c;
+  --accent: #a4b86a;
+  --accent-fg: #0c0e09;
+  --ok: #8fd16a;
+  --ok-bg: #1e3312;
+  --warn: #000000;
+  --warn-bg: #e0a526;
+  --bad: #ffffff;
+  --bad-bg: #c0281c;
+  --impact: #ff5a4a;
+  --e50: #ff5a4a;
+  --e90: #ffa14d;
+  --track: #6fb6ff;
+  --target: #d58cff;
+  --ground: #4b4632;
+  --series-1: #3a7fd6;
+  --series-2: #c9622a;
+  --series-3: #1c9874;
+  --grid: #2f3526;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-label: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-data: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-size: 17px;
+  --data-scale: 1.15;
+  --readout-min: 6.6rem;
+  --weight-label: 700;
+  --weight-data: 700;
+  --weight-heavy: 700;
+  --radius: 3px;
+  --radius-sm: 2px;
+  --radius-lg: 4px;
+  --radius-pill: 3px;
+  --label-case: uppercase;
+  --label-spacing: 0.06em;
+  color-scheme: dark;
+}
+
+[data-skin='spy'] {
+  --map-filter: grayscale(1) sepia(0.55) contrast(0.95) brightness(1.02);
+  --map-bg: #e3d7b5;
+  --map-ink: #000000;
+  --map-halo: #ffffff;
+  --map-ctl-bg: #f8f2e1;
+  --map-ctl-fg: #1b1712;
+  --keep-clear: #b3161f;
+  --mark: #23602a;
+  --gps: #0a84ff;
+  --trees: #5a6b3a;
+  --warn-ink: #000000;
+  --bg: #efe6cc;
+  --fg: #1b1712;
+  --muted: #4e4536;
+  --card: #f8f2e1;
+  --line: #3a3227;
+  --accent: #1f3a7a;
+  --accent-fg: #f8f2e1;
+  --ok: #23602a;
+  --ok-bg: #d5e6c4;
+  --warn: #5c3d00;
+  --warn-bg: #f2c14e;
+  --bad: #ffffff;
+  --bad-bg: #a8161f;
+  --impact: #b3161f;
+  --e50: #b3161f;
+  --e90: #c9650e;
+  --track: #1f3a7a;
+  --target: #6d2a8c;
+  --ground: #c2ad7f;
+  --series-1: #2368b8;
+  --series-2: #c0531a;
+  --series-3: #0b8a6d;
+  --grid: #d6c9a6;
+  --font-ui: 'Courier Prime', 'Courier New', monospace;
+  --font-label: 'Courier Prime', 'Courier New', monospace;
+  --font-data: 'Courier Prime', 'Courier New', monospace;
+  --font-size: 17px;
+  --data-scale: 0.95;
+  --readout-min: 6.6rem;
+  --weight-label: 700;
+  --weight-data: 700;
+  --weight-heavy: 700;
+  --radius: 2px;
+  --radius-sm: 2px;
+  --radius-lg: 2px;
+  --radius-pill: 2px;
+  --label-case: uppercase;
+  --label-spacing: 0.04em;
+  color-scheme: light;
+}
+
+[data-theme='dark'][data-skin='spy'],
+[data-theme='dark'] [data-skin='spy'] {
+  --map-filter: grayscale(1) invert(1) contrast(1.1) brightness(0.75) sepia(0.25) hue-rotate(170deg) saturate(1.4);
+  --map-bg: #0a0e13;
+  --map-ink: #e6edf3;
+  --map-halo: #05070a;
+  --map-ctl-bg: #0c1117;
+  --map-ctl-fg: #e6edf3;
+  --keep-clear: #ff4058;
+  --mark: #3ee08f;
+  --gps: #4da3ff;
+  --trees: #2f6b4a;
+  --warn-ink: #000000;
+  --bg: #05070a;
+  --fg: #e6edf3;
+  --muted: #8d99a6;
+  --card: #0c1117;
+  --line: #8293a6;
+  --accent: #19d3c5;
+  --accent-fg: #001312;
+  --ok: #3ee08f;
+  --ok-bg: #062b19;
+  --warn: #000000;
+  --warn-bg: #ffb020;
+  --bad: #ffffff;
+  --bad-bg: #d1243a;
+  --impact: #ff4058;
+  --e50: #ff4058;
+  --e90: #ffa040;
+  --track: #19d3c5;
+  --target: #c38bff;
+  --ground: #1d2630;
+  --series-1: #1aa7b5;
+  --series-2: #d9702a;
+  --series-3: #9068e0;
+  --grid: #1f2933;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-label: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --font-data: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --font-size: 17px;
+  --data-scale: 0.9;
+  --readout-min: 6.6rem;
+  --weight-label: 600;
+  --weight-data: 600;
+  --weight-heavy: 600;
+  --radius: 0;
+  --radius-sm: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  --label-case: uppercase;
+  --label-spacing: 0.1em;
+  color-scheme: dark;
+}
+
+[data-skin='retro'] {
+  --map-filter: grayscale(1) contrast(1.25) brightness(0.95) sepia(0.35) hue-rotate(45deg) saturate(0.9);
+  --map-bg: #b9c59f;
+  --map-ink: #000000;
+  --map-halo: #ffffff;
+  --map-ctl-bg: #c7d1b0;
+  --map-ctl-fg: #121a0e;
+  --keep-clear: #a51d1d;
+  --mark: #1d4d14;
+  --gps: #102a6b;
+  --trees: #4d5e33;
+  --warn-ink: #000000;
+  --bg: #c7d1b0;
+  --fg: #121a0e;
+  --muted: #3c4a30;
+  --card: #b9c59f;
+  --line: #1f2a17;
+  --accent: #1f2a17;
+  --accent-fg: #c7d1b0;
+  --ok: #1d4d14;
+  --ok-bg: #a9c98c;
+  --warn: #4a3000;
+  --warn-bg: #e2b33c;
+  --bad: #ffffff;
+  --bad-bg: #a51d1d;
+  --impact: #a51d1d;
+  --e50: #a51d1d;
+  --e90: #b5570f;
+  --track: #102a6b;
+  --target: #5b1f7a;
+  --ground: #9aa77f;
+  --series-1: #2a54b0;
+  --series-2: #a3410f;
+  --series-3: #00785e;
+  --grid: #a3af88;
+  --font-ui: 'VT323', 'Courier New', monospace;
+  --font-label: 'VT323', 'Courier New', monospace;
+  --font-data: 'DSEG7 Classic', 'VT323', monospace;
+  --font-size: 20px;
+  --data-scale: 0.72;
+  --readout-min: 5.4rem;
+  --weight-label: 400;
+  --weight-data: 700;
+  --weight-heavy: 400;
+  --radius: 0;
+  --radius-sm: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  --label-case: uppercase;
+  --label-spacing: 0.04em;
+  color-scheme: light;
+}
+
+[data-theme='dark'][data-skin='retro'],
+[data-theme='dark'] [data-skin='retro'] {
+  --map-filter: grayscale(1) invert(1) contrast(1.3) brightness(0.85) sepia(1) hue-rotate(65deg) saturate(5) brightness(0.75);
+  --map-bg: #021006;
+  --map-ink: #d9ffe3;
+  --map-halo: #020d04;
+  --map-ctl-bg: #04170a;
+  --map-ctl-fg: #41ff70;
+  --keep-clear: #ff4d4d;
+  --mark: #d9ffe3;
+  --gps: #00e5ff;
+  --trees: #1f7a3a;
+  --warn-ink: #000000;
+  --bg: #020d04;
+  --fg: #41ff70;
+  --muted: #2bb552;
+  --card: #04170a;
+  --line: #2bd65a;
+  --accent: #41ff70;
+  --accent-fg: #021004;
+  --ok: #41ff70;
+  --ok-bg: #0a3a17;
+  --warn: #000000;
+  --warn-bg: #ffb000;
+  --bad: #000000;
+  --bad-bg: #ff4d4d;
+  --impact: #ffb000;
+  --e50: #ffb000;
+  --e90: #ff7a1a;
+  --track: #d9ffe3;
+  --target: #00e5ff;
+  --ground: #0f3d1a;
+  --series-1: #1fa874;
+  --series-2: #c9701a;
+  --series-3: #3f8fe0;
+  --grid: #0e3318;
+  --font-ui: 'VT323', 'Courier New', monospace;
+  --font-label: 'VT323', 'Courier New', monospace;
+  --font-data: 'VT323', 'Courier New', monospace;
+  --font-size: 20px;
+  --data-scale: 1.1;
+  --readout-min: 5.4rem;
+  --weight-label: 400;
+  --weight-data: 400;
+  --weight-heavy: 400;
+  --radius: 0;
+  --radius-sm: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  --label-case: uppercase;
+  --label-spacing: 0.04em;
+  color-scheme: dark;
+}
+
+/* Classification strip colours (also used by the preview tiles). */
+[data-skin='military'] {
+  --tag-bg: #007a33;
+  --tag-fg: #ffffff;
+}
+[data-skin='spy'] {
+  --tag-bg: transparent;
+  --tag-fg: #a8161f;
+}
+[data-theme='dark'][data-skin='spy'],
+[data-theme='dark'] [data-skin='spy'] {
+  --tag-bg: #ff8c00;
+  --tag-fg: #000000;
+}
+[data-skin='retro'] {
+  --tag-bg: var(--line);
+  --tag-fg: var(--bg);
+}
+
+/* --- Classification strip over the map ------------------------------------------------ */
+
+.skin-tag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1001;
+  height: 18px;
+  font: 700 11px/18px var(--font-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--tag-bg);
+  color: var(--tag-fg);
+}
+.map-wrap.has-tag .leaflet-top {
+  top: 18px;
+}
+
+/* Map attribution and buttons take the skin's colours (plain keeps Leaflet's own). */
+:root:not([data-skin='plain']) .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--map-ctl-bg) 85%, transparent);
+  color: var(--map-ctl-fg);
+}
+:root:not([data-skin='plain']) .leaflet-control-attribution a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* --- Modern military: olive drab, sand, condensed stencil-like caps -------------------- */
+
+:root[data-skin='military'] h2 {
+  border-left: 4px solid var(--accent);
+  padding-left: 6px;
+}
+:root[data-skin='military'] .readout-label {
+  margin: -3px -6px 3px;
+  padding: 1px 6px;
+  background: var(--line);
+  color: var(--bg);
+}
+:root[data-skin='military'] .tabbar button.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+/* Plotting-board grid behind the panel. */
+:root[data-skin='military'] .panel {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--line) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--line) 7%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-attachment: local;
+}
+
+/* --- Spy, dark: an agency display with corner brackets and monospace caps --------------- */
+
+:root[data-skin='spy'][data-theme='dark'] .card,
+:root[data-skin='spy'][data-theme='dark'] .readout,
+:root[data-skin='spy'][data-theme='dark'] .arc-card,
+[data-theme='dark'] .skin-tile[data-skin='spy'] .skin-tile-readout {
+  border-width: 1px;
+  border-color: color-mix(in srgb, var(--line) 55%, transparent);
+  background:
+    linear-gradient(var(--accent) 0 0) left top / 12px 2px,
+    linear-gradient(var(--accent) 0 0) left top / 2px 12px,
+    linear-gradient(var(--accent) 0 0) right top / 12px 2px,
+    linear-gradient(var(--accent) 0 0) right top / 2px 12px,
+    linear-gradient(var(--accent) 0 0) left bottom / 12px 2px,
+    linear-gradient(var(--accent) 0 0) left bottom / 2px 12px,
+    linear-gradient(var(--accent) 0 0) right bottom / 12px 2px,
+    linear-gradient(var(--accent) 0 0) right bottom / 2px 12px,
+    var(--card);
+  background-repeat: no-repeat;
+}
+:root[data-skin='spy'][data-theme='dark'] .arc-card.selected {
+  border-color: var(--accent);
+}
+:root[data-skin='spy'][data-theme='dark'] .btn {
+  border-width: 1px;
+}
+:root[data-skin='spy'][data-theme='dark'] .btn-primary {
+  border-width: 2px;
+}
+:root[data-skin='spy'][data-theme='dark'] .readout-label {
+  color: var(--accent);
+}
+:root[data-skin='spy'][data-theme='dark'] h2::before {
+  content: '// ';
+  color: var(--accent);
+}
+:root[data-skin='spy'][data-theme='dark'] .tabbar {
+  border-top-width: 1px;
+}
+:root[data-skin='spy'][data-theme='dark'] .tabbar button.active {
+  background: none;
+  color: var(--accent);
+  box-shadow: inset 0 3px 0 var(--accent);
+}
+
+/* --- Spy, light: a typewritten dossier with a rubber stamp ------------------------------ */
+
+:root[data-skin='spy']:not([data-theme='dark']) .card {
+  border-width: 1px;
+  box-shadow: 3px 3px 0 color-mix(in srgb, var(--line) 22%, transparent);
+}
+:root[data-skin='spy']:not([data-theme='dark']) h2 {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+/* Readouts as typed form fields: a rule under each, no box. */
+:root[data-skin='spy']:not([data-theme='dark']) .readout {
+  border-width: 0 0 2px;
+  border-radius: 0;
+}
+/* The rubber stamp sits bottom-left, clear of the hints, controls and attribution. */
+:root[data-skin='spy']:not([data-theme='dark']) .skin-tag {
+  top: auto;
+  right: auto;
+  bottom: 18px;
+  left: 12px;
+  height: auto;
+  padding: 2px 10px;
+  font-size: 14px;
+  line-height: 1.3;
+  transform: rotate(-6deg);
+  border: 3px double var(--tag-fg);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  opacity: 0.9;
+}
+:root[data-skin='spy']:not([data-theme='dark']) .skin-tag-rest {
+  display: none;
+}
+:root[data-skin='spy']:not([data-theme='dark']) .map-wrap.has-tag .leaflet-top {
+  top: 0;
+}
+
+/* --- 1980s military: green-screen terminal (dark) and LCD handset (light) --------------- */
+
+:root[data-skin='retro'] {
+  /* VT323 has one weight: never smear it into a fake bold. */
+  font-synthesis: none;
+}
+:root[data-skin='retro'] h2::before {
+  content: '> ';
+}
+:root[data-skin='retro'] .skin-tag {
+  font-size: 15px;
+}
+/* VT323 runs small: lift the chart and side-view labels. */
+:root[data-skin='retro'] :is(.chart-tick, .sv-tick, .sv-label) {
+  font-size: 14px;
+}
+
+:root[data-skin='retro'][data-theme='dark'] body {
+  text-shadow: 0 0 3px rgb(65 255 112 / 0.55);
+}
+/* Scan lines and a vignette over everything except the camera view and QR codes. */
+:root[data-skin='retro'][data-theme='dark'] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / 0.25) 2px 3px),
+    radial-gradient(ellipse at center, transparent 55%, rgb(0 0 0 / 0.45) 100%);
+}
+:root[data-skin='retro'][data-theme='dark'] .qr {
+  position: relative;
+  z-index: 2600;
+}
+:root[data-skin='retro'][data-theme='dark'] .card {
+  border-style: double;
+  border-width: 4px;
+}
+:root[data-skin='retro'][data-theme='dark'] .btn {
+  background: transparent;
+}
+:root[data-skin='retro'][data-theme='dark'] .btn:active {
+  background: var(--fg);
+  color: var(--bg);
+}
+/* Reverse video and coloured fills read better without the glow. */
+:root[data-skin='retro'][data-theme='dark'] :is(.tabbar button.active, .btn-primary, .btn:active, .toast, .skin-tag, .chip-warn, .chip-bad, .banner-warn, .banner-bad, .banner-safety, .flight-bar, .pill.bad, .flag.bad) {
+  text-shadow: none;
+}
+
+/* LCD: a faint pixel grid, and readouts set into the glass. */
+:root[data-skin='retro']:not([data-theme='dark']) body {
+  background-image:
+    linear-gradient(rgb(0 0 0 / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(0 0 0 / 0.035) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+:root[data-skin='retro']:not([data-theme='dark']) .readout {
+  background: var(--card);
+  box-shadow: inset 2px 2px 0 rgb(0 0 0 / 0.12);
+}
+:root[data-skin='retro']:not([data-theme='dark']) .readout-value {
+  text-shadow: 1px 1px 0 rgb(0 0 0 / 0.15);
+}
+
+/* --- Skin picker ------------------------------------------------------------------------ */
+
+.skin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 8px 0;
+}
+.skin-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  border: 3px solid transparent;
+  border-radius: 14px;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.skin-pick[aria-checked='true'] {
+  border-color: var(--accent);
+}
+.skin-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0 4px;
+}
+.skin-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 112px;
+  padding: 24px 8px 8px;
+  overflow: hidden;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-synthesis: none;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.skin-tile-tag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
+  font: 700 9px/16px var(--font-label);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  background: var(--tag-bg);
+  color: var(--tag-fg);
+}
+.skin-tile-readout {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 6px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+.skin-tile-label {
+  font-family: var(--font-label);
+  font-weight: var(--weight-label);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.skin-tile-value {
+  font-family: var(--font-data);
+  font-weight: var(--weight-data);
+  font-size: calc(26px * var(--data-scale));
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.skin-tile-value small {
+  font-family: var(--font-label);
+  font-size: 12px;
+  margin-left: 2px;
+}
+.skin-tile-btn {
+  align-self: flex-start;
+  padding: 2px 10px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-family: var(--font-label);
+  font-weight: var(--weight-label);
+  font-size: 12px;
+  text-transform: var(--label-case);
+  letter-spacing: var(--label-spacing);
+}
+.skin-tile[data-skin='military'] .skin-tile-label {
+  margin: -2px -6px 2px;
+  padding: 0 6px;
+  background: var(--line);
+  color: var(--bg);
+}
+.skin-tile[data-skin='spy'] .skin-tile-tag {
+  letter-spacing: 0.04em;
+}
+[data-theme='dark'] .skin-tile[data-skin='retro'] {
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / 0.25) 2px 3px),
+    var(--bg);
+  text-shadow: 0 0 3px rgb(65 255 112 / 0.55);
+}
+:root:not([data-theme='dark']) .skin-tile[data-skin='retro'] .skin-tile-readout {
+  box-shadow: inset 2px 2px 0 rgb(0 0 0 / 0.12);
+}

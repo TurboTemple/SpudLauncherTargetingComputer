@@ -9,7 +9,17 @@ import { initSolver } from './state/solver';
 import { installPrompt, toast, updateAvailable } from './state/store';
 import { App } from './ui/App';
 import { aimingTone } from './ui/audio';
+import './ui/fonts';
 import './ui/styles.css';
+import './ui/skins.css';
+
+// Apply the last skin at once, so the loading screen does not flash the plain one.
+try {
+  const look = JSON.parse(localStorage.getItem('spud-look') ?? 'null') as Record<string, string> | null;
+  if (look) Object.assign(document.documentElement.dataset, look);
+} catch {
+  /* no stored look */
+}
 
 render(h(App, {}), document.getElementById('app')!);
 

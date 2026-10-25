@@ -1,50 +1,6 @@
 /* High-contrast, one-handed, bright-daylight UI. Tap targets ≥ 48 px, main readouts ≥ 32 px. */
 
-:root {
-  --bg: #ffffff;
-  --fg: #000000;
-  --muted: #3a3a3a;
-  --card: #f1f1f1;
-  --line: #000000;
-  --accent: #0040e0;
-  --accent-fg: #ffffff;
-  --ok: #00701f;
-  --ok-bg: #d6f5dc;
-  --warn: #6b4500;
-  --warn-bg: #ffd84d;
-  --bad: #ffffff;
-  --bad-bg: #c40000;
-  --impact: #e00000;
-  --e50: #e00000;
-  --e90: #ff7a00;
-  --track: #0040e0;
-  --target: #8b00d6;
-  --ground: #b9a27a;
-  color-scheme: light;
-}
-
-:root[data-theme='dark'] {
-  --bg: #000000;
-  --fg: #ffffff;
-  --muted: #cfcfcf;
-  --card: #161616;
-  --line: #ffffff;
-  --accent: #4da3ff;
-  --accent-fg: #000000;
-  --ok: #6dff8e;
-  --ok-bg: #0e3a18;
-  --warn: #000000;
-  --warn-bg: #ffd84d;
-  --bad: #ffffff;
-  --bad-bg: #d40000;
-  --impact: #ff4d4d;
-  --e50: #ff4d4d;
-  --e90: #ffa64d;
-  --track: #4da3ff;
-  --target: #d58cff;
-  --ground: #6e5a3a;
-  color-scheme: dark;
-}
+/* Colour, font and shape tokens live in skins.css (plain is the default skin). */
 
 * {
   box-sizing: border-box;
@@ -56,7 +12,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font: 17px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font: var(--font-size) / 1.4 var(--font-ui);
   -webkit-text-size-adjust: 100%;
   overscroll-behavior: none;
 }
@@ -69,6 +25,18 @@ h2 {
 h3 {
   font-size: 1rem;
   margin: 12px 0 6px;
+}
+
+h2,
+h3,
+details.card > summary {
+  font-family: var(--font-label);
+  font-weight: var(--weight-label);
+  text-transform: var(--label-case);
+  letter-spacing: var(--label-spacing);
+}
+summary {
+  font-family: var(--font-label);
 }
 
 p {
@@ -127,12 +95,13 @@ p {
   gap: 10px;
   padding: 6px 12px;
   background: var(--warn-bg);
-  color: #000;
+  color: var(--warn-ink);
   border-top: 2px solid var(--line);
   font-weight: 700;
 }
 .flight-time {
   font-size: 1.4rem;
+  font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
 }
 .flight-time small {
@@ -153,7 +122,7 @@ p {
 .map {
   position: absolute;
   inset: 0;
-  background: #ddd;
+  background: var(--map-bg);
 }
 
 .map-hint {
@@ -164,11 +133,14 @@ p {
   background: var(--bg);
   color: var(--fg);
   border: 2px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 4px 8px;
   font-size: 0.85rem;
   font-weight: 600;
   pointer-events: none;
+}
+.map-wrap.has-tag .map-hint {
+  top: 26px;
 }
 
 .panel {
@@ -208,7 +180,10 @@ p {
   background: none;
   color: var(--fg);
   font: inherit;
+  font-family: var(--font-label);
   font-weight: 600;
+  text-transform: var(--label-case);
+  letter-spacing: var(--label-spacing);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -233,11 +208,14 @@ p {
   min-width: 48px;
   padding: 10px 16px;
   border: 2px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--bg);
   color: var(--fg);
   font: inherit;
-  font-weight: 700;
+  font-family: var(--font-label);
+  font-weight: var(--weight-label);
+  text-transform: var(--label-case);
+  letter-spacing: var(--label-spacing);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -260,7 +238,7 @@ p {
 .btn-warn {
   background: var(--warn-bg);
   border-color: var(--line);
-  color: #000;
+  color: var(--warn-ink);
 }
 
 .btn-big {
@@ -320,7 +298,7 @@ p {
   font-variant-numeric: tabular-nums;
   padding: 6px 8px;
   border: 2px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--fg);
 }
@@ -356,7 +334,7 @@ p {
 .card {
   background: var(--card);
   border: 2px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 10px 12px;
   margin: 10px 0;
 }
@@ -374,7 +352,7 @@ p {
 }
 
 details.card summary {
-  font-weight: 700;
+  font-weight: var(--weight-label);
   min-height: 40px;
   display: flex;
   align-items: center;
@@ -384,10 +362,13 @@ details.card summary {
 .pill {
   display: inline-block;
   border: 2px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 1px 8px;
   font-size: 0.8rem;
-  font-weight: 700;
+  font-family: var(--font-label);
+  font-weight: var(--weight-label);
+  text-transform: var(--label-case);
+  letter-spacing: var(--label-spacing);
   margin-left: 4px;
 }
 .pill.ok {
@@ -409,7 +390,7 @@ details.card summary {
 
 .banner {
   border: 2px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 6px 10px;
   margin: 6px 0;
   font-size: 0.92rem;
@@ -418,7 +399,7 @@ details.card summary {
 
 .banner-warn {
   background: var(--warn-bg);
-  color: #000;
+  color: var(--warn-ink);
 }
 .banner-bad {
   background: var(--bad-bg);
@@ -430,7 +411,7 @@ details.card summary {
 }
 .banner-safety {
   background: var(--warn-bg);
-  color: #000;
+  color: var(--warn-ink);
   font-weight: 500;
   margin: 10px 12px;
 }
@@ -455,7 +436,7 @@ details.card summary {
 .toast {
   background: var(--fg);
   color: var(--bg);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 8px 12px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -463,12 +444,12 @@ details.card summary {
 }
 .toast-warn {
   background: var(--warn-bg);
-  color: #000;
-  border: 2px solid #000;
+  color: var(--warn-ink);
+  border: 2px solid var(--warn-ink);
 }
 .toast-error {
   background: var(--bad-bg);
-  color: #fff;
+  color: var(--bad);
 }
 
 /* --- Aim screen ------------------------------------------------------------------ */
@@ -476,14 +457,14 @@ details.card summary {
 .readouts {
   display: grid;
   /* Three across on a phone in portrait, two in a narrow landscape side panel. */
-  grid-template-columns: repeat(auto-fit, minmax(6.6rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--readout-min), 1fr));
   gap: 6px;
   margin: 6px 0;
 }
 
 .readout {
   border: 2px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 3px 6px;
   display: flex;
   flex-direction: column;
@@ -492,14 +473,16 @@ details.card summary {
 
 .readout-label {
   font-size: 0.8rem;
-  font-weight: 700;
+  font-family: var(--font-label);
+  font-weight: var(--weight-label);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .readout-value {
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: calc(2rem * var(--data-scale));
+  font-family: var(--font-data);
+  font-weight: var(--weight-data);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -520,7 +503,8 @@ details.card summary {
 
 .readout-value small {
   font-size: 0.9rem;
-  font-weight: 700;
+  font-family: var(--font-label);
+  font-weight: var(--weight-label);
   margin-left: 2px;
 }
 
@@ -535,10 +519,11 @@ details.card summary {
   flex: 1;
   text-align: center;
   font-size: 1.4rem;
-  font-weight: 900;
+  font-family: var(--font-label);
+  font-weight: var(--weight-heavy);
   letter-spacing: 0.08em;
   border: 3px dashed var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 10px;
   color: var(--muted);
 }
@@ -558,10 +543,11 @@ details.card summary {
 
 .chip {
   border: 2px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 3px 10px;
   font-size: 0.85rem;
-  font-weight: 700;
+  font-family: var(--font-label);
+  font-weight: var(--weight-label);
 }
 .chip-ok {
   background: var(--ok-bg);
@@ -570,7 +556,7 @@ details.card summary {
 }
 .chip-warn {
   background: var(--warn-bg);
-  color: #000;
+  color: var(--warn-ink);
 }
 .chip-bad {
   background: var(--bad-bg);
@@ -592,7 +578,7 @@ details.card summary {
   stroke-width: 1;
 }
 .sv-surface {
-  fill: #2f8f3a;
+  fill: var(--trees);
   fill-opacity: 0.55;
   stroke: none;
 }
@@ -644,7 +630,7 @@ details.card summary {
 .arc-card {
   text-align: left;
   border: 3px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--card);
   color: var(--fg);
   padding: 8px 10px;
@@ -666,8 +652,9 @@ details.card summary {
 }
 
 .arc-main {
-  font-size: 1.6rem;
-  font-weight: 800;
+  font-size: calc(1.6rem * var(--data-scale));
+  font-family: var(--font-data);
+  font-weight: var(--weight-data);
   font-variant-numeric: tabular-nums;
 }
 .arc-main small {
@@ -682,20 +669,21 @@ details.card summary {
 .flag.bad {
   color: var(--bad);
   background: var(--bad-bg);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 2px 6px;
 }
 
 .cue {
   margin: 12px 0;
   border: 3px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   padding: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: 2.2rem;
-  font-weight: 900;
+  font-size: calc(2.2rem * var(--data-scale));
+  font-family: var(--font-data);
+  font-weight: var(--weight-heavy);
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
@@ -760,7 +748,7 @@ table.fit td.ok {
 
 .setting-row {
   border: 2px solid color-mix(in srgb, var(--line) 30%, transparent);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 4px 10px;
   margin: 8px 0;
 }
@@ -778,30 +766,30 @@ table.fit td.ok {
 }
 .mk-launch span {
   background: var(--accent);
-  border: 4px solid #fff;
-  box-shadow: 0 0 0 2px #000;
+  border: 4px solid var(--map-halo);
+  box-shadow: 0 0 0 2px var(--map-ink);
 }
 .mk-impact span {
   border: 4px solid var(--impact);
   background: radial-gradient(circle, var(--impact) 0 4px, transparent 5px);
-  box-shadow: 0 0 0 2px #fff;
+  box-shadow: 0 0 0 2px var(--map-halo);
 }
 .mk-target span {
   border: 4px solid var(--target);
-  background: radial-gradient(circle, var(--target) 0 4px, #fff 5px 8px, var(--target) 9px 11px, transparent 12px);
-  box-shadow: 0 0 0 2px #fff;
+  background: radial-gradient(circle, var(--target) 0 4px, var(--map-halo) 5px 8px, var(--target) 9px 11px, transparent 12px);
+  box-shadow: 0 0 0 2px var(--map-halo);
 }
 .mk-mark span {
-  background: #00b33c;
-  border: 4px solid #fff;
-  box-shadow: 0 0 0 2px #000;
+  background: var(--mark);
+  border: 4px solid var(--map-halo);
+  box-shadow: 0 0 0 2px var(--map-ink);
   border-radius: 4px;
   transform: rotate(45deg);
 }
 .mk-obstacle span {
   background: var(--bad-bg);
-  border: 3px solid #fff;
-  box-shadow: 0 0 0 2px #000;
+  border: 3px solid var(--map-halo);
+  box-shadow: 0 0 0 2px var(--map-ink);
   border-radius: 4px;
   transform: rotate(45deg);
 }
@@ -815,7 +803,7 @@ table.fit td.ok {
 }
 
 path.aim-line {
-  stroke: #000;
+  stroke: var(--map-ink);
   stroke-width: 2.5;
   stroke-dasharray: 8 6;
   fill: none;
@@ -845,29 +833,29 @@ path.game-ring {
   fill-opacity: 0.08;
 }
 path.game-hit {
-  stroke: #fff;
+  stroke: var(--map-halo);
   stroke-width: 2;
   fill: var(--target);
   fill-opacity: 1;
 }
 path.footprint {
-  stroke: #d00000;
+  stroke: var(--keep-clear);
   stroke-width: 2.5;
   stroke-dasharray: 3 7;
   stroke-linecap: round;
-  fill: #d00000;
+  fill: var(--keep-clear);
   fill-opacity: 0.04;
 }
 path.gps-accuracy {
-  stroke: #0a84ff;
+  stroke: var(--gps);
   stroke-width: 2;
-  fill: #0a84ff;
+  fill: var(--gps);
   fill-opacity: 0.12;
 }
 path.gps-dot {
-  stroke: #fff;
+  stroke: var(--map-halo);
   stroke-width: 2;
-  fill: #0a84ff;
+  fill: var(--gps);
   fill-opacity: 1;
 }
 path.target-line {
@@ -877,9 +865,9 @@ path.target-line {
   fill: none;
 }
 path.shot-dot {
-  stroke: #000;
+  stroke: var(--map-ink);
   stroke-width: 2;
-  fill: #00b33c;
+  fill: var(--mark);
   fill-opacity: 1;
 }
 path.shot-dot.excluded {
@@ -893,7 +881,7 @@ path.residual {
 path.residual-pred {
   stroke: #ff00aa;
   stroke-width: 2;
-  fill: #fff;
+  fill: var(--map-halo);
   fill-opacity: 1;
 }
 
@@ -903,8 +891,8 @@ path.residual-pred {
   font-size: 1.4rem;
   border: 2px solid rgb(0 0 0 / 0.4);
   border-radius: 6px;
-  background: #fff;
-  color: #000;
+  background: var(--map-ctl-bg);
+  color: var(--map-ctl-fg);
   cursor: pointer;
 }
 
@@ -914,9 +902,21 @@ path.residual-pred {
   line-height: 44px !important;
   font-size: 22px !important;
 }
+.leaflet-bar a {
+  background: var(--map-ctl-bg);
+  color: var(--map-ctl-fg);
+}
 
 .leaflet-container {
   font: inherit;
+}
+
+/* Skins tint the base map (tiles only; overlays keep their colours). */
+:root[data-tint='on'] .leaflet-tile-pane {
+  filter: var(--map-filter);
+}
+.leaflet-container {
+  background: var(--map-bg);
 }
 
 .leaflet-control-attribution {
@@ -988,20 +988,7 @@ path.residual-pred {
   fill: var(--impact);
 }
 
-/* --- Charts (series colours validated for CVD on the card surface, both themes) ---- */
-
-:root {
-  --series-1: #2a78d6;
-  --series-2: #eb6834;
-  --series-3: #1baf7a;
-  --grid: #c9c9c6;
-}
-:root[data-theme='dark'] {
-  --series-1: #3987e5;
-  --series-2: #d95926;
-  --series-3: #199e70;
-  --grid: #3a3a38;
-}
+/* --- Charts (series colours per skin in skins.css, validated for CVD on the card surface) */
 
 .chart {
   margin: 6px 0;
@@ -1128,7 +1115,7 @@ path.residual-pred {
   display: inline-block;
   width: 22px;
   height: 0;
-  border-top: 3px dotted #d00000;
+  border-top: 3px dotted var(--keep-clear);
   vertical-align: middle;
 }
 
@@ -1184,7 +1171,7 @@ path.residual-pred {
   font: inherit;
   font-size: 0.85rem;
   border: 2px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--fg);
   padding: 4px 6px;
@@ -1275,12 +1262,12 @@ path.residual-pred {
 .mk-spot span {
   display: grid;
   place-items: center;
-  background: #00b33c;
-  color: #fff;
+  background: var(--mark);
+  color: var(--map-halo);
   font-weight: 800;
   font-size: 13px;
-  border: 3px solid #fff;
-  box-shadow: 0 0 0 2px #000;
+  border: 3px solid var(--map-halo);
+  box-shadow: 0 0 0 2px var(--map-ink);
 }
 .spot-list {
   font-variant-numeric: tabular-nums;

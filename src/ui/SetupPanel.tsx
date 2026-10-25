@@ -7,6 +7,7 @@ import type { CannonProfile, PowerSetting, Projectile } from '../data/model';
 import { speedAtSetting } from '../core/calibration';
 import { SATELLITE_PROVIDERS, satelliteLayer, type SatelliteProviderId } from '../data/satellite';
 import { LineChart } from './charts';
+import { SkinCard } from './SkinCard';
 import {
   addCannon,
   addProjectile,
@@ -317,15 +318,6 @@ function SettingsCard() {
         hint="(sharper ground near the launch point, and trees, hedges and buildings for 'in the way' checks; about 1 MB per new field)"
       />
       <Toggle label="Audio aiming cues" checked={s.audio} onChange={(v) => updateSettings({ audio: v })} />
-      <Select
-        label="Theme"
-        value={s.theme}
-        options={[
-          { value: 'light', label: 'High contrast, light' },
-          { value: 'dark', label: 'High contrast, dark' },
-        ]}
-        onChange={(v) => updateSettings({ theme: v })}
-      />
     </Card>
   );
 }
@@ -471,6 +463,7 @@ export function SetupPanel() {
       {p && <ProjectileCard p={p} />}
       <HeadingCard />
       <WeatherCard />
+      <SkinCard />
       <SettingsCard />
       <SatelliteCard />
       <DetectionCard />

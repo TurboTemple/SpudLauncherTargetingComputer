@@ -101,6 +101,8 @@ interface LineChartProps {
 
 const W = 340;
 const M = { l: 38, r: 10, t: 8, b: 26 };
+/** Minimum distance between x tick labels, viewBox units (a "05:35 PM" label is about 50). */
+const TICK_GAP = 58;
 
 export function LineChart({ title, series, xFormat, yFormat, yUnit, xLabel, height = 150, yMin, yMax, xDomain, xTicks, under }: LineChartProps) {
   const svg = useRef<SVGSVGElement>(null);
@@ -118,7 +120,10 @@ export function LineChart({ title, series, xFormat, yFormat, yUnit, xLabel, heig
   const H = height;
   const X = (x: number) => M.l + ((x - x0) / (x1 - x0 || 1)) * (W - M.l - M.r);
   const Y = (y: number) => H - M.b - ((y - ya) / (yb - ya || 1)) * (H - M.t - M.b);
-  const xt = (xTicks ?? niceTicks(x0, x1, 3)).filter((v) => v >= x0 && v <= x1);
+  // Keep tick labels apart: drop inner ticks within a label's width of a kept one.
+  const xt = (xTicks ?? niceTicks(x0, x1, 3))
+    .filter((v) => v >= x0 && v <= x1)
+    .filter((v, i, all) => i === 0 || i === all.length - 1 || (X(v) - X(all[0]!) >= TICK_GAP && X(all[all.length - 1]!) - X(v) >= TICK_GAP));
   const uniqX = [...new Set(xs)].sort((a, b) => a - b);
 
   const onMove = (e: PointerEvent) => {

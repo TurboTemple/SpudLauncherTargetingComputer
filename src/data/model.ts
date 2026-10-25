@@ -111,6 +111,8 @@ export interface Shot {
   excluded?: boolean; // user dropped it from fits
 }
 
+export type SkinId = 'plain' | 'military' | 'spy' | 'retro';
+
 export interface AppSettings {
   /** Barrel-vector smoothing time constant, s. */
   emaTauS: number;
@@ -134,6 +136,10 @@ export interface AppSettings {
   gustWidening: boolean;
   audio: boolean;
   theme: 'light' | 'dark';
+  /** Look of the app; each skin has a light (day) and dark (night) version. */
+  skin: SkinId;
+  /** Tint the map and satellite tiles to match the skin. */
+  tintMap: boolean;
   satelliteProvider: SatelliteProviderId;
   /** Provider API keys: kept on this phone only, never exported. */
   maptilerKey: string;

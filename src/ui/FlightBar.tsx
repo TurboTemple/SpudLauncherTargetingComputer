@@ -1,22 +1,26 @@
 /**
  * Shown on every screen while a shot is in the air: a running clock, a big Landed button, and
- * a countdown to the predicted landing ("three, two, one, landing") so spotters look in time.
+ * a countdown to the predicted landing ("three, two, one, landing", worded per skin) so
+ * spotters look in time.
  */
 
 import { useEffect, useState } from 'preact/hooks';
 import { markLanded } from '../state/actions';
 import { recording, settings, tab } from '../state/store';
 import { aimingTone } from './audio';
+import { countdownCues, type Cue } from './cues';
 import { fmt } from './format';
+import { skinById } from './skins';
 
-function say(word: string, freq: number, voice: boolean): void {
-  if (voice && 'speechSynthesis' in window) {
-    const u = new SpeechSynthesisUtterance(word);
+function play(c: Cue, voice: boolean): void {
+  if (voice && c.say && 'speechSynthesis' in window) {
+    const u = new SpeechSynthesisUtterance(c.say);
     u.rate = 1.3;
     window.speechSynthesis.speak(u);
-  } else {
-    aimingTone.beep(freq, word === 'landing' ? 0.45 : 0.12);
+  } else if (!c.flavour) {
+    aimingTone.beep(c.freq, c.final ? 0.45 : 0.12);
   }
+  if (c.final) navigator.vibrate?.(200);
 }
 
 export function FlightBar() {
@@ -36,20 +40,10 @@ export function FlightBar() {
     if (firedAt === null || !settings.peek().countdown || !Number.isFinite(predicted)) return;
     const voice = settings.peek().countdownVoice;
     const elapsed = performance.now() / 1000 - firedAt;
-    const cues: [number, string, number][] = [
-      [predicted - 3, 'three', 660],
-      [predicted - 2, 'two', 660],
-      [predicted - 1, 'one', 660],
-      [predicted, 'landing', 1320],
-    ];
-    const timers = cues
-      .filter(([t]) => t > elapsed)
-      .map(([t, word, freq]) =>
-        setTimeout(() => {
-          say(word, freq, voice);
-          if (word === 'landing') navigator.vibrate?.(200);
-        }, (t - elapsed) * 1000),
-      );
+    // The firing call is due at once; allow for the moment it took to get here.
+    const timers = countdownCues(skinById(settings.peek().skin).voice, predicted)
+      .filter((c) => c.t > elapsed - 0.25)
+      .map((c) => setTimeout(() => play(c, voice), Math.max(0, c.t - elapsed) * 1000));
     return () => {
       timers.forEach(clearTimeout);
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
