@@ -2,14 +2,17 @@
 
 import { useEffect, useRef } from 'preact/hooks';
 import type { ArcSolution } from '../core/inverse';
+import type { Obstacle } from '../core/terrain';
 import { angleDiff, DEG, toDeg } from '../core/angles';
 import { liveAim, selectedArc, settings, target, targetSolution } from '../state/store';
 import { updateSettings } from '../state/actions';
 import { aimingTone } from './audio';
 import { compassPoint, fmt, fmtDeg } from './format';
 import { StartSensorsButton } from './AimPanel';
+import { GameCard } from './GameCard';
+import { RangeCard } from './RangeCard';
 
-function ArcCard({ name, arc, selected, onPick }: { name: string; arc: ArcSolution | null; selected: boolean; onPick: () => void }) {
+function ArcCard({ name, arc, selected, onPick, obstacle }: { name: string; arc: ArcSolution | null; selected: boolean; onPick: () => void; obstacle: Obstacle | null }) {
   if (!arc) {
     return (
       <div class="arc-card disabled">
@@ -31,6 +34,11 @@ function ArcCard({ name, arc, selected, onPick }: { name: string; arc: ArcSoluti
         {fmt(arc.tof, 2)} s · apex {fmt(arc.apex[2], 0)} m · {fmt(arc.impactSpeed, 0)} m/s
       </div>
       {arc.groundInWay && <div class="flag bad">Ground in the way</div>}
+      {obstacle && (
+        <div class="flag bad">
+          {obstacle.featureHeight > 6 ? 'Trees' : 'Hedge'} in the way at {fmt(obstacle.distance, 0)} m
+        </div>
+      )}
       {arc.ascending && <div class="flag">Hits while still rising</div>}
       {arc.elevation < 0 && <div class="flag">Below horizontal</div>}
     </button>
@@ -67,6 +75,8 @@ export function TargetPanel() {
       <div class="panel-inner">
         <StartSensorsButton />
         <p class="hint-big">Long-press the map to set a target.</p>
+        <GameCard />
+        <RangeCard azimuthDeg={a ? a.azimuthDeg : null} label="(current aim)" />
       </div>
     );
   }
@@ -95,8 +105,8 @@ export function TargetPanel() {
       {sol?.reachable && (
         <>
           <div class="arcs">
-            <ArcCard name="Low arc" arc={sol.low} selected={pick === 'low'} onPick={() => (selectedArc.value = 'low')} />
-            <ArcCard name="High arc" arc={sol.high} selected={pick === 'high'} onPick={() => (selectedArc.value = 'high')} />
+            <ArcCard name="Low arc" arc={sol.low} obstacle={ts!.obstacles.low} selected={pick === 'low'} onPick={() => (selectedArc.value = 'low')} />
+            <ArcCard name="High arc" arc={sol.high} obstacle={ts!.obstacles.high} selected={pick === 'high'} onPick={() => (selectedArc.value = 'high')} />
           </div>
           {sol.notes.length > 0 && <p class="muted small">{sol.notes.join(' ')}</p>}
           <p class="muted small">
@@ -118,6 +128,8 @@ export function TargetPanel() {
           )}
         </div>
       )}
+      <GameCard />
+      <RangeCard azimuthDeg={sol ? toDeg(sol.bearing) : null} label="(toward the target)" />
       {pick && (
         <label class="toggle">
           <input

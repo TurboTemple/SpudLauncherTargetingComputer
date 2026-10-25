@@ -26,10 +26,16 @@ export interface CalShot {
   azimuth: number;
   /** Muzzle height, m. */
   h0: number;
-  /** Drag factor at drag scale 1 for this shot's air and projectile, 1/m. */
+  /** Drag factor at drag scale 1 for this shot's air, projectile and weight, 1/m. */
   kUnit: number;
+  /**
+   * This shot's launch speed relative to its setting's fitted speed. With "speed depends on
+   * weight" (same energy each shot) it is √(m_ref / m); otherwise 1. The fitted v0 is then the
+   * speed of a reference-weight potato.
+   */
+  speedScale?: number;
   wind: Vec3;
-  windShear?: boolean;
+  shearExponent?: number;
   /** Marked impact in ENU, m; z relative to the launch ground. */
   impact: { x: number; y: number; z: number };
   /** Marking uncertainty, m (2 for a map tap, GPS accuracy for a walked mark). */
@@ -106,10 +112,10 @@ interface FreeParam {
   hi: number;
 }
 
-/** Simulate a shot down to its marked impact height. */
+/** Simulate a shot down to its marked impact height; v0 is the setting's (reference-weight) speed. */
 export function simulateShot(s: CalShot, v0: number, c: number, bias: number, dt?: number): SimResult {
   return simulate(
-    { v0, elevation: s.elevation, azimuth: s.azimuth + bias, k: s.kUnit * c, wind: s.wind, windShear: s.windShear, h0: s.h0 },
+    { v0: v0 * (s.speedScale ?? 1), elevation: s.elevation, azimuth: s.azimuth + bias, k: s.kUnit * c, wind: s.wind, shearExponent: s.shearExponent, h0: s.h0 },
     { plane: s.impact.z, dt },
   );
 }
@@ -344,7 +350,7 @@ export function fitCalibration(shots: readonly CalShot[], start: CalStart, opts:
   };
 }
 
-/** Launch speed that puts this shot's downrange miss at zero (bisection on 5–150 m/s). */
+/** Setting speed (reference weight) that puts this shot's downrange miss at zero (bisection on 5–150 m/s). */
 export function speedForShot(s: CalShot, c: number, bias: number, dt?: number): number {
   const f = (v: number) => {
     const r = simulateShot(s, v, c, bias, dt);
@@ -370,22 +376,41 @@ export function speedForShot(s: CalShot, c: number, bias: number, dt?: number): 
 }
 
 /**
- * Numeric power settings (pressures): v0 linearly interpolated between calibrated settings,
- * clamped to the end values outside the calibrated range. No physical model is assumed.
+ * Speed against a numeric setting such as chamber pressure: v = a·p^b, fitted on log–log axes
+ * over the calibrated settings. With one calibrated setting, b = 0.5 (speed ∝ √pressure: the
+ * gas does work ∝ pressure on a potato of fixed weight). b is clamped to [0.1, 1.5].
  */
-export function interpolateV0(points: readonly { numeric: number; v0: number }[], numeric: number): { v0: number; clamped: boolean } | null {
-  if (points.length === 0) return null;
-  const pts = [...points].sort((a, b) => a.numeric - b.numeric);
-  if (numeric <= pts[0]!.numeric) return { v0: pts[0]!.v0, clamped: numeric < pts[0]!.numeric };
-  const last = pts[pts.length - 1]!;
-  if (numeric >= last.numeric) return { v0: last.v0, clamped: numeric > last.numeric };
-  for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1]!;
-    const b = pts[i]!;
-    if (numeric <= b.numeric) {
-      const t = (numeric - a.numeric) / (b.numeric - a.numeric || 1);
-      return { v0: a.v0 + t * (b.v0 - a.v0), clamped: false };
+export interface PowerCurve {
+  a: number;
+  b: number;
+  /** Range of calibrated settings; outside it the curve is extrapolating. */
+  min: number;
+  max: number;
+  points: number;
+}
+
+export function fitPowerCurve(points: readonly { numeric: number; v0: number }[]): PowerCurve | null {
+  const pts = points.filter((p) => p.numeric > 0 && p.v0 > 0);
+  if (pts.length === 0) return null;
+  const lx = pts.map((p) => Math.log(p.numeric));
+  const ly = pts.map((p) => Math.log(p.v0));
+  const n = pts.length;
+  const mx = lx.reduce((a, x) => a + x, 0) / n;
+  const my = ly.reduce((a, y) => a + y, 0) / n;
+  let b = 0.5;
+  if (n >= 2) {
+    let sxx = 0;
+    let sxy = 0;
+    for (let i = 0; i < n; i++) {
+      sxx += (lx[i]! - mx) ** 2;
+      sxy += (lx[i]! - mx) * (ly[i]! - my);
     }
+    if (sxx > 1e-12) b = Math.min(1.5, Math.max(0.1, sxy / sxx));
   }
-  return { v0: last.v0, clamped: true };
+  const a = Math.exp(my - b * mx);
+  return { a, b, min: Math.min(...pts.map((p) => p.numeric)), max: Math.max(...pts.map((p) => p.numeric)), points: n };
+}
+
+export function speedAtSetting(curve: PowerCurve, numeric: number): number {
+  return curve.a * numeric ** curve.b;
 }

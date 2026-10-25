@@ -10,12 +10,14 @@ import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef } from 'preact/hooks';
 import { ellipsePolygon } from '../core/uncertainty';
 import { satelliteLayer, type SatelliteLayerConfig } from '../data/satellite';
+import { EA_ATTRIBUTION } from '../data/eaLidar';
 import { TERRAIN_ATTRIBUTION } from '../data/terrainTiles';
 import { latLonOf, type LatLon } from '../geoDeg';
 import { markImpactAt, pickLandmark, setLaunchFromMap, updateSettings } from '../state/actions';
 import {
   aim,
   fitResult,
+  footprint,
   lastFix,
   launch,
   mapAction,
@@ -29,6 +31,7 @@ import {
   tab,
   target,
   targetSolution,
+  terrain,
   toast,
   wizard,
   zone,
@@ -70,6 +73,10 @@ export function MapView() {
     const landmarkLayer = L.layerGroup();
     const shotLayer = L.layerGroup();
     const draftImpact = L.marker([0, 0], { icon: divIcon('mk-mark', 26), interactive: false });
+    const ringLayer = L.layerGroup();
+    const footprintLayer = L.polygon([], { className: 'footprint', interactive: false });
+    const obstacleMarker = L.marker([0, 0], { icon: divIcon('mk-obstacle', 26), interactive: false });
+    let eaAttributed = false;
 
     const show = (layer: L.Layer, on: boolean) => {
       if (on && !map.hasLayer(layer)) layer.addTo(map);
@@ -296,6 +303,38 @@ export function MapView() {
           L.polyline([ll(pred), ll(s.impact)], { className: 'residual', interactive: false }).addTo(shotLayer);
           L.circleMarker(ll(pred), { radius: 3, className: 'residual-pred', interactive: false }).addTo(shotLayer);
         }
+      }),
+      effect(() => {
+        const l = launch.value;
+        const o = prediction.value?.obstacle;
+        show(obstacleMarker, !!(l && o));
+        if (l && o) obstacleMarker.setLatLng(ll(latLonOf(l, o.x, o.y)));
+      }),
+      effect(() => {
+        const g = settings.value.game;
+        const t = target.value;
+        ringLayer.clearLayers();
+        show(ringLayer, !!(g && t));
+        if (!g || !t) return;
+        for (const r of [...g.rings].sort((a, b) => b.radius - a.radius)) {
+          L.circle(ll(t), { radius: r.radius, className: 'game-ring', interactive: false }).addTo(ringLayer);
+        }
+        // Scored landings of this game.
+        for (const s of shots.value) {
+          if (s.game?.id === g.id && s.impact) L.circleMarker(ll(s.impact), { radius: 5, className: 'game-hit', interactive: false }).addTo(ringLayer);
+        }
+      }),
+      effect(() => {
+        const l = launch.value;
+        const f = footprint.value;
+        show(footprintLayer, !!(l && f) && tab.value !== 'setup');
+        if (l && f) footprintLayer.setLatLngs(f.points.map((p) => ll(latLonOf(l, p.x, p.y))));
+      }),
+      effect(() => {
+        const lidar = terrain.value.source === 'lidar';
+        if (lidar && !eaAttributed) map.attributionControl.addAttribution(EA_ATTRIBUTION);
+        if (!lidar && eaAttributed) map.attributionControl.removeAttribution(EA_ATTRIBUTION);
+        eaAttributed = lidar;
       }),
       effect(() => {
         const imp = recording.value?.draft.impact;

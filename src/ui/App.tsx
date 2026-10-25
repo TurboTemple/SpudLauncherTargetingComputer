@@ -1,10 +1,13 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { mapAction, ready, settings, tab, toasts } from '../state/store';
+import { cameraOpen, mapAction, ready, settings, tab, toasts } from '../state/store';
 import { AimPanel } from './AimPanel';
 import { Banners, SafetyCard } from './Banners';
+import { CameraView } from './CameraView';
+import { FlightBar } from './FlightBar';
 import { MapView } from './MapView';
 import { SetupPanel } from './SetupPanel';
 import { ShotsPanel } from './ShotsPanel';
+import { SpotterScreen } from './SpotterScreen';
 import { TabBar } from './TabBar';
 import { TargetPanel } from './TargetPanel';
 import { WizardCard } from './WizardCard';
@@ -27,6 +30,20 @@ export function App() {
     if (panel.current) panel.current.scrollTop = 0;
   }, [t]);
   if (!ready.value) return <div class="loading">Loading…</div>;
+  if (settings.value.spotter) {
+    return (
+      <>
+        <SpotterScreen />
+        <div class="toasts" aria-live="polite">
+          {toasts.value.map((m) => (
+            <div key={m.id} class={`toast toast-${m.kind}`}>
+              {m.text}
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  }
   const action = mapAction.value;
   return (
     <div class={`app tab-${t}`}>
@@ -50,6 +67,8 @@ export function App() {
           </div>
         ))}
       </div>
+      {cameraOpen.value && <CameraView />}
+      <FlightBar />
       <TabBar />
     </div>
   );

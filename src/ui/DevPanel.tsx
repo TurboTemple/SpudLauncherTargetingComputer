@@ -2,7 +2,7 @@
 
 import { useState } from 'preact/hooks';
 import { download } from '../state/actions';
-import { recorder, replayRecording, setSimulator, stopReplaying } from '../state/sensors';
+import { handleMotion, recorder, replayRecording, setSimulator, stopReplaying } from '../state/sensors';
 import { prediction, simState, simulatorOn } from '../state/store';
 import type { Recording } from '../sensors/recorder';
 import { Card, Toggle } from './fields';
@@ -86,6 +86,9 @@ export function DevPanel() {
           </button>
         )}
       </div>
+      <button class="btn" onClick={() => handleMotion({ t: performance.now() / 1000, withGravity: null, linear: [0, 80, 0] })}>
+        Simulate shot jolt
+      </button>
       <p class="muted small">Last forward simulation: {fmt(prediction.value?.computeMs, 3)} ms (budget 1 ms).</p>
     </Card>
   );

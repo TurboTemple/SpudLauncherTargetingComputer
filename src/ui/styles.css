@@ -97,26 +97,47 @@ p {
 .app {
   display: grid;
   height: 100dvh;
-  grid-template-rows: 60fr 40fr auto;
+  grid-template-rows: 60fr 40fr auto auto;
   grid-template-columns: 100%;
-  grid-template-areas: 'map' 'panel' 'tabs';
+  grid-template-areas: 'map' 'panel' 'flight' 'tabs';
 }
 
 .app.tab-setup {
-  grid-template-rows: 1fr auto;
-  grid-template-areas: 'panel' 'tabs';
+  grid-template-rows: 1fr auto auto;
+  grid-template-areas: 'panel' 'flight' 'tabs';
 }
 
 @media (orientation: landscape) and (max-height: 640px), (min-width: 1000px) {
   .app {
     grid-template-columns: 60fr 40fr;
-    grid-template-rows: 1fr auto;
-    grid-template-areas: 'map panel' 'tabs tabs';
+    grid-template-rows: 1fr auto auto;
+    grid-template-areas: 'map panel' 'flight flight' 'tabs tabs';
   }
   .app.tab-setup {
     grid-template-columns: 100%;
-    grid-template-areas: 'panel' 'tabs';
+    grid-template-areas: 'panel' 'flight' 'tabs';
   }
+}
+
+.flight-bar {
+  grid-area: flight;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 12px;
+  background: var(--warn-bg);
+  color: #000;
+  border-top: 2px solid var(--line);
+  font-weight: 700;
+}
+.flight-time {
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+}
+.flight-time small {
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .map-wrap {
@@ -484,6 +505,19 @@ details.card summary {
   white-space: nowrap;
 }
 
+.readout-sub {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.weight-row .field {
+  border-bottom: 0;
+}
+.weight-row p {
+  margin-top: -6px;
+}
+
 .readout-value small {
   font-size: 0.9rem;
   font-weight: 700;
@@ -556,6 +590,16 @@ details.card summary {
   fill: var(--ground);
   stroke: var(--line);
   stroke-width: 1;
+}
+.sv-surface {
+  fill: #2f8f3a;
+  fill-opacity: 0.55;
+  stroke: none;
+}
+.sv-obstacle line {
+  stroke: var(--impact);
+  stroke-width: 3;
+  stroke-linecap: round;
 }
 .sv-path {
   fill: none;
@@ -754,6 +798,13 @@ table.fit td.ok {
   border-radius: 4px;
   transform: rotate(45deg);
 }
+.mk-obstacle span {
+  background: var(--bad-bg);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px #000;
+  border-radius: 4px;
+  transform: rotate(45deg);
+}
 .mk-landmark span {
   background: #ffd400;
   border: 3px solid #000;
@@ -786,6 +837,26 @@ path.e90 {
   stroke: var(--e90);
   fill: var(--e90);
   stroke-dasharray: 10 6;
+}
+path.game-ring {
+  stroke: var(--target);
+  stroke-width: 2;
+  fill: var(--target);
+  fill-opacity: 0.08;
+}
+path.game-hit {
+  stroke: #fff;
+  stroke-width: 2;
+  fill: var(--target);
+  fill-opacity: 1;
+}
+path.footprint {
+  stroke: #d00000;
+  stroke-width: 2.5;
+  stroke-dasharray: 3 7;
+  stroke-linecap: round;
+  fill: #d00000;
+  fill-opacity: 0.04;
 }
 path.gps-accuracy {
   stroke: #0a84ff;
@@ -915,4 +986,302 @@ path.residual-pred {
 }
 .wind-arrow polygon {
   fill: var(--impact);
+}
+
+/* --- Charts (series colours validated for CVD on the card surface, both themes) ---- */
+
+:root {
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --grid: #c9c9c6;
+}
+:root[data-theme='dark'] {
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --grid: #3a3a38;
+}
+
+.chart {
+  margin: 6px 0;
+}
+.chart-plot {
+  position: relative;
+}
+.chart-plot svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: pan-y;
+}
+.chart-square {
+  max-width: 320px;
+  margin: 0 auto;
+}
+.chart-grid {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+.chart-ring {
+  fill: none;
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+.chart-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart-dot {
+  stroke: var(--card);
+  stroke-width: 2;
+}
+.chart-dot.hot {
+  stroke: var(--fg);
+}
+.chart-crosshair {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+.chart-tick {
+  font-size: 10px;
+  fill: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.85rem;
+  margin-bottom: 2px;
+}
+.chart-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.chart-tip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2;
+}
+.chart-tip-x {
+  color: var(--muted);
+}
+.chart-tip-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.chart-table summary,
+.wind-trend summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+}
+.chart-table table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  width: 100%;
+}
+.chart-table th,
+.chart-table td {
+  text-align: left;
+  padding: 2px 6px;
+  border-bottom: 1px solid var(--grid);
+}
+
+.meter {
+  display: inline-block;
+  width: 120px;
+  height: 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  vertical-align: middle;
+  overflow: hidden;
+}
+.meter span {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+}
+.meter span.over {
+  background: var(--bad-bg);
+}
+
+.swatch-footprint {
+  display: inline-block;
+  width: 22px;
+  height: 0;
+  border-top: 3px dotted #d00000;
+  vertical-align: middle;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.95rem;
+}
+.table th,
+.table td {
+  text-align: right;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--grid);
+}
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+}
+.table tr.best td {
+  font-weight: 800;
+}
+.print-only {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .range-card-print,
+  .range-card-print * {
+    visibility: visible;
+  }
+  .range-card-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    color: #000;
+    background: #fff;
+  }
+  .print-only {
+    display: block;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+.compact-select {
+  min-height: 40px;
+  font: inherit;
+  font-size: 0.85rem;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  padding: 4px 6px;
+}
+
+.players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.game-last {
+  font-size: 1.1rem;
+}
+
+/* --- Camera view ------------------------------------------------------------------ */
+
+.camera-view {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: #000;
+  color: #fff;
+}
+.camera-view video,
+.camera-view canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.camera-top,
+.camera-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding: 10px 12px;
+  background: rgb(0 0 0 / 0.55);
+  font-weight: 600;
+}
+.camera-top {
+  top: 0;
+  padding-top: calc(10px + env(safe-area-inset-top));
+}
+.camera-bottom {
+  bottom: 0;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.camera-bottom .slider {
+  flex: 1;
+  margin: 0;
+}
+.camera-error {
+  display: block;
+  color: #ff8a8a;
+}
+
+/* --- QR codes and spotter mode ------------------------------------------------------ */
+
+.qr-box {
+  margin: 8px 0;
+}
+.qr {
+  display: block;
+  width: min(80vw, 300px);
+  height: auto;
+  margin: 6px auto;
+  border-radius: 6px;
+}
+.scan-frame {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(70vw, 300px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border: 4px solid #fff;
+  border-radius: 16px;
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.35);
+}
+.app.spotter {
+  grid-template-rows: 60fr 40fr;
+  grid-template-areas: 'map' 'panel';
+}
+.mk-spot span {
+  display: grid;
+  place-items: center;
+  background: #00b33c;
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px #000;
+}
+.spot-list {
+  font-variant-numeric: tabular-nums;
 }

@@ -6,7 +6,7 @@
 
 import type { Geo } from '../core/geo';
 import { TILE_SIZE } from '../core/geo';
-import { buildHeightGrid, decodeTerrariumPixels, tileBlockAround, TERRAIN_ZOOM, type BuiltGrid, type TerrainTile } from '../core/terrain';
+import { decodeTerrariumPixels, tileBlockAround, TERRAIN_ZOOM, TileMosaic, type GeoSampler, type TerrainTile } from '../core/terrain';
 
 export const TERRAIN_TILE_URL = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
 export const TERRAIN_ATTRIBUTION =
@@ -37,11 +37,11 @@ async function fetchTile(template: string, z: number, tx: number, ty: number): P
   }
 }
 
-export async function loadTerrainGrid(origin: Geo, template = TERRAIN_TILE_URL): Promise<(BuiltGrid & { halfSizeM: number }) | null> {
+/** The 3 × 3 tile block around a point as an absolute-height sampler, and how far it reaches. */
+export async function loadTerrainTiles(origin: Geo, template = TERRAIN_TILE_URL): Promise<{ sample: GeoSampler; halfSizeM: number } | null> {
   const { tiles: ids, reachM } = tileBlockAround(origin, TERRAIN_ZOOM);
   const tiles = await Promise.all(ids.map(({ tx, ty }) => fetchTile(template, TERRAIN_ZOOM, tx, ty)));
   if (tiles.every((t) => !t.heights)) return null;
-  const halfSizeM = Math.min(MAX_HALF_SIZE, Math.floor(reachM));
-  const built = buildHeightGrid(tiles, origin, halfSizeM);
-  return built ? { ...built, halfSizeM } : null;
+  const mosaic = new TileMosaic(TERRAIN_ZOOM, tiles);
+  return { sample: (p) => mosaic.sampleGeo(p), halfSizeM: Math.min(MAX_HALF_SIZE, Math.floor(reachM)) };
 }

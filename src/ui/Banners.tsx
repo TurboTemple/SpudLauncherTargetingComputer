@@ -6,6 +6,7 @@ import { acknowledgeSafety } from '../state/actions';
 import {
   aim,
   calibrated,
+  effectiveV0,
   gpsError,
   headingMode,
   metalWarningAt,
@@ -62,6 +63,9 @@ export function Banners() {
           </button>
         </Banner>
       )}
+      {effectiveV0.value?.source === 'curve' && effectiveV0.value.extrapolated && (
+        <Banner kind="warn">This setting is outside the calibrated range: its launch speed is extrapolated from the pressure curve.</Banner>
+      )}
       {!calibrated.value && (
         <Banner kind="bad">
           <strong>UNCALIBRATED</strong>: launch speed is a guess until shots for this power setting are fitted.
@@ -80,6 +84,13 @@ export function Banners() {
         <Banner kind="warn">Compass jumped while the tilt held steady: metal nearby or a steel barrel is bending it. Use landmark sighting.</Banner>
       )}
       {terrain.value.state === 'flat' && <Banner kind="warn">Flat ground assumed (no terrain data).</Banner>}
+      {pr?.obstacle && (
+        <Banner kind="bad">
+          {pr.obstacle.featureHeight > 6 ? 'Trees or a building' : 'A hedge or bush'} in the way at {pr.obstacle.distance.toFixed(0)} m (
+          {pr.obstacle.featureHeight.toFixed(1)} m tall): the potato would hit it {pr.obstacle.z.toFixed(1)} m up. From survey data, which can't see
+          gaps under branches: check the line yourself.
+        </Banner>
+      )}
       {a && a.elevationDeg > 85 && <Banner kind="warn">Keep the tilt under 85°: near vertical the angles become unstable.</Banner>}
       {pr && pr.stop === 'time' && <Banner kind="warn">Flight longer than 60 s: outside the design envelope.</Banner>}
       {pr && pr.stop === 'distance' && <Banner kind="warn">Shot passes 2 km: outside the design envelope.</Banner>}

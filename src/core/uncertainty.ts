@@ -19,7 +19,7 @@ export interface ZoneInputs {
   kUnit: number;
   /** Wind (east, north, up) m/s. */
   wind: Vec3;
-  windShear?: boolean;
+  shearExponent?: number;
   h0: number;
 }
 
@@ -91,7 +91,7 @@ export function impactXY(inp: ZoneInputs, q: readonly number[], ground: GroundFn
       azimuth: q[1]!,
       k: inp.kUnit * Math.max(q[3]!, 0),
       wind: [q[4]!, q[5]!, inp.wind[2]],
-      windShear: inp.windShear,
+      shearExponent: inp.shearExponent,
       h0: inp.h0,
     },
     { ground, dt },

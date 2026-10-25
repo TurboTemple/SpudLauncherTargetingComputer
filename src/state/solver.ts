@@ -3,6 +3,7 @@
 import { computed, effect } from '@preact/signals';
 import { toRad } from '../core/angles';
 import { windVector } from '../core/atmosphere';
+import type { RangeRow } from '../core/footprint';
 import type { BaseLaunch } from '../core/inverse';
 import { TERRAIN_TILE_URL } from '../data/terrainTiles';
 import { enuOf, geoOf, latLonOf, type LatLon } from '../geoDeg';
@@ -13,11 +14,13 @@ import {
   atmosphere,
   cannon,
   declinationDeg,
-  effectiveV0,
+  footprint,
   kUnit,
+  launchSpeed,
   launch,
   monteCarlo,
   monteCarloBusy,
+  potatoMassKg,
   prediction,
   projectile,
   settings,
@@ -27,8 +30,10 @@ import {
   spreads,
   target,
   targetSolution,
+  shear,
   terrain,
   toast,
+  wind10,
   windEffect,
   zone,
 } from './store';
@@ -91,19 +96,25 @@ async function runPredict(): Promise<void> {
 export const baseLaunch = computed<BaseLaunch | null>(() => {
   const c = cannon.value;
   const p = projectile.value;
-  const v = effectiveV0.value;
+  const v = launchSpeed.value;
   if (!c || !p || !v) return null;
   const atm = atmosphere.value;
   return {
     v0: v.v0,
     k: kUnit.value * p.dragScale,
-    wind: windVector(atm.windSpeedMs, toRad(atm.windFromDeg)),
-    windShear: settings.value.windShear,
+    wind: windVector(wind10.value.speed, toRad(atm.windFromDeg)),
+    shearExponent: shear.value.alpha,
     h0: c.muzzleHeightM,
   };
 });
 
+const footprintKey = computed(() => {
+  const sp = spreads.value;
+  return sp ? `${sp.v0.toFixed(3)}|${sp.dragScale.toFixed(4)}|${sp.windE.toFixed(3)}` : '';
+});
+
 let targetTimer: ReturnType<typeof setTimeout> | null = null;
+let footprintTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function initSolver(): void {
   // Live prediction whenever any input changes.
@@ -116,11 +127,11 @@ export function initSolver(): void {
     schedulePredict();
   });
 
-  // Terrain and declination follow the launch point.
+  // Terrain and declination follow the launch point (and the LIDAR setting).
   let lastLaunch = '';
   effect(() => {
     const l = launch.value;
-    const key = l ? `${l.lat.toFixed(7)},${l.lon.toFixed(7)}` : '';
+    const key = l ? `${l.lat.toFixed(7)},${l.lon.toFixed(7)},${settings.value.useEaLidar}` : '';
     if (key === lastLaunch) return;
     lastLaunch = key;
     void loadTerrain(l);
@@ -132,6 +143,32 @@ export function initSolver(): void {
         }
       });
     }
+  });
+
+  // Keep-clear footprint: depends on conditions, the speed/drag/wind spreads and terrain, never
+  // on the aim. (The full spreads change at sensor rate with tilt noise, which the footprint
+  // does not use, so it watches a key of only what it uses.)
+  effect(() => {
+    const base = baseLaunch.value;
+    void footprintKey.value;
+    const sp = spreads.peek();
+    const show = settings.value.showFootprint;
+    const l = launch.value;
+    void terrain.value.state;
+    if (footprintTimer) clearTimeout(footprintTimer);
+    if (!base || !sp || !show || !l) {
+      footprint.value = null;
+      return;
+    }
+    const p = projectile.peek();
+    footprintTimer = setTimeout(async () => {
+      const res = await solver.request({
+        kind: 'footprint',
+        conditions: base,
+        spreads: { v0: sp.v0, dragFrac: p && p.dragScale > 0 ? sp.dragScale / p.dragScale : 0.1, wind: sp.windE },
+      });
+      if (res) footprint.value = { points: res.points, maxReach: Math.max(...res.points.map((q) => q.reach)) };
+    }, 600);
   });
 
   // Target solutions follow the target, launch point, conditions and terrain.
@@ -155,11 +192,11 @@ export function initSolver(): void {
 async function loadTerrain(l: LatLon | null): Promise<void> {
   if (!l) {
     terrain.value = { state: 'none', loaded: false, launchGroundM: NaN, coverage: 0, halfSizeM: 0 };
-    await solver.request({ kind: 'terrain', origin: null, tileUrl: TERRAIN_TILE_URL });
+    await solver.request({ kind: 'terrain', origin: null, tileUrl: TERRAIN_TILE_URL, ea: false });
     return;
   }
   terrain.value = { ...terrain.peek(), state: 'loading' };
-  const res = await solver.request({ kind: 'terrain', origin: geoOf(l), tileUrl: TERRAIN_TILE_URL });
+  const res = await solver.request({ kind: 'terrain', origin: geoOf(l), tileUrl: TERRAIN_TILE_URL, ea: settings.peek().useEaLidar });
   if (!res) return; // superseded by a newer launch point
   terrain.value = { ...res, state: res.loaded ? 'loaded' : 'flat' };
   if (!res.loaded) toast('Terrain unavailable: flat ground assumed', 'warn');
@@ -169,6 +206,14 @@ async function loadTerrain(l: LatLon | null): Promise<void> {
 export async function groundHeights(points: [number, number][]): Promise<number[] | null> {
   const res = await solver.request({ kind: 'ground', points });
   return res ? res.heights : null;
+}
+
+/** Range card toward an azimuth (degrees) for the current conditions and potato. */
+export async function requestRangeCard(azimuthDeg: number): Promise<RangeRow[] | null> {
+  const base = baseLaunch.peek();
+  if (!base) return null;
+  const res = await solver.request({ kind: 'rangecard', conditions: base, azimuth: toRad(azimuthDeg), massKg: potatoMassKg.peek() });
+  return res?.rows ?? null;
 }
 
 export async function runMonteCarlo(n = 500): Promise<void> {

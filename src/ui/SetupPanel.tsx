@@ -4,7 +4,9 @@ import { terminalSpeed } from '../core/atmosphere';
 import { G } from '../core/ballistics';
 import { LIMITS, newId } from '../data/defaults';
 import type { CannonProfile, PowerSetting, Projectile } from '../data/model';
+import { speedAtSetting } from '../core/calibration';
 import { SATELLITE_PROVIDERS, satelliteLayer, type SatelliteProviderId } from '../data/satellite';
+import { LineChart } from './charts';
 import {
   addCannon,
   addProjectile,
@@ -27,8 +29,10 @@ import {
   cannons,
   declinationDeg,
   installPrompt,
+  joltPeak,
   kUnit,
   powerSetting,
+  pressureCurve,
   projectile,
   projectiles,
   session,
@@ -86,6 +90,12 @@ function CannonCard({ c }: { c: CannonProfile }) {
           Calibrate
         </button>
       </p>
+      <Toggle
+        label="Launch speed depends on potato weight"
+        checked={c.massAffectsSpeed ?? false}
+        onChange={(v) => save({ massAffectsSpeed: v })}
+        hint="(same energy every shot, so lighter potatoes leave faster; speeds below are for a typical-weight potato)"
+      />
       <h3>Power settings</h3>
       {c.settings.map((s) => (
         <div class={`setting-row ${active?.id === s.id ? 'active' : ''}`} key={s.id}>
@@ -109,7 +119,47 @@ function CannonCard({ c }: { c: CannonProfile }) {
       <button class="btn btn-small" onClick={() => save({ settings: [...c.settings, { id: newId(), label: `Setting ${c.settings.length + 1}`, v0: 40, v0Sigma: 3.2 }] })}>
         Add power setting
       </button>
+      <PressureCurveView c={c} />
     </Card>
+  );
+}
+
+/** Speed against pressure for numeric settings: the fitted curve and the calibrated points. */
+function PressureCurveView({ c }: { c: CannonProfile }) {
+  const curve = pressureCurve.value;
+  const numeric = c.settings.filter((s) => s.numeric !== undefined && s.numeric > 0);
+  if (!numeric.length) {
+    return <p class="muted small">Give settings a number (e.g. pressure in psi) and the app fits a speed curve, so one calibration covers every pressure.</p>;
+  }
+  if (!curve) return <p class="muted small">Calibrate a numbered setting to fit the speed-against-pressure curve.</p>;
+  const lo = Math.min(curve.min, ...numeric.map((s) => s.numeric!)) * 0.8;
+  const hi = Math.max(curve.max, ...numeric.map((s) => s.numeric!)) * 1.1;
+  const line = Array.from({ length: 40 }, (_, i) => {
+    const p = lo + ((hi - lo) * i) / 39;
+    return [p, speedAtSetting(curve, p)] as const;
+  });
+  const cal = c.settings.filter((s) => s.fittedAt && s.numeric !== undefined).map((s) => [s.numeric!, s.v0] as const);
+  return (
+    <>
+      <h3>Speed against setting</h3>
+      <p class="small">
+        v = {fmt(curve.a, 2)} × setting<sup>{fmt(curve.b, 2)}</sup>
+        {curve.points === 1 ? ' (one calibrated setting: assumes speed grows with the square root of pressure)' : ` from ${curve.points} calibrated settings`}.
+      </p>
+      <LineChart
+        title="Launch speed against setting"
+        series={[
+          { label: 'Fitted curve', color: 'var(--series-1)', points: line },
+          { label: 'Calibrated', color: 'var(--series-2)', points: cal, noLine: true },
+        ]}
+        xFormat={(v) => fmt(v, 0)}
+        yFormat={(v) => fmt(v, 0)}
+        yUnit="m/s"
+        xLabel="Setting (e.g. psi)"
+        yMin={0}
+        height={140}
+      />
+    </>
   );
 }
 
@@ -136,7 +186,7 @@ function ProjectileCard({ p }: { p: Projectile }) {
         <Select label="Active projectile" value={p.id} options={projectiles.value.map((x) => ({ value: x.id, label: x.name }))} onChange={(id) => updateSettings({ activeProjectileId: id })} />
       )}
       <TextField label="Name" value={p.name} onChange={(name) => save({ name })} />
-      <NumberField label="Mass" unit="g" scale={1000} digits={0} value={p.massKg} min={LIMITS.massKg[0]} max={LIMITS.massKg[1]} onChange={(v) => save({ massKg: v })} />
+      <NumberField label="Typical weight" unit="g" scale={1000} digits={0} value={p.massKg} min={LIMITS.massKg[0]} max={LIMITS.massKg[1]} onChange={(v) => save({ massKg: v })} />
       <NumberField label="Diameter" unit="mm" scale={1000} digits={0} value={p.diameterM} min={LIMITS.diameterM[0]} max={LIMITS.diameterM[1]} onChange={(v) => save({ diameterM: v })} />
       {cannon.value && Math.abs(cannon.value.barrelDiameterM - p.diameterM) > 1e-6 && (
         <button class="btn btn-small" onClick={() => save({ diameterM: cannon.value!.barrelDiameterM })}>
@@ -190,7 +240,18 @@ function HeadingCard() {
 
 function WeatherCard() {
   const a = atmosphere.value;
-  const set = (patch: Partial<typeof a>) => setAtmosphere({ ...a, ...patch, source: 'manual', fetchedAt: new Date().toISOString() });
+  // A manual edit replaces the forecast: drop its profile and trend, keep the reading height.
+  const set = (patch: Partial<typeof a>) =>
+    setAtmosphere({
+      ...a,
+      ...patch,
+      source: 'manual',
+      fetchedAt: new Date().toISOString(),
+      measuredAtM: patch.measuredAtM ?? a.measuredAtM ?? 1.5,
+      shearExponent: undefined,
+      profile: undefined,
+      trend: undefined,
+    });
   return (
     <Card
       title="Weather"
@@ -209,7 +270,19 @@ function WeatherCard() {
       <NumberField label="Wind speed (10 m)" unit="m/s" value={a.windSpeedMs} min={0} max={40} onChange={(v) => set({ windSpeedMs: v })} />
       <NumberField label="Wind from" unit="° true" value={a.windFromDeg} min={0} max={360} onChange={(v) => set({ windFromDeg: v % 360 })} />
       <NumberField label="Gusts" unit="m/s" optional value={a.windGustsMs ?? NaN} min={0} max={60} onChange={(v) => set({ windGustsMs: Number.isFinite(v) ? v : undefined })} />
-      <p class="muted small">Forecast wind is a 10 m average; enter a handheld reading for a better estimate.</p>
+      <Select
+        label="Wind measured at"
+        value={a.source === 'manual' && a.measuredAtM !== undefined && a.measuredAtM < 5 ? 'hand' : 'mast'}
+        options={[
+          { value: 'hand', label: 'Hand height (~1.5 m)' },
+          { value: 'mast', label: '10 m (forecast or mast)' },
+        ]}
+        onChange={(v) => set({ measuredAtM: v === 'hand' ? 1.5 : 10 })}
+      />
+      <p class="muted small">
+        Forecast wind is a 10 m average; a handheld reading is usually better. Readings taken at hand height are scaled up to 10 m with the wind
+        profile, since wind near the ground is slower.
+      </p>
     </Card>
   );
 }
@@ -227,7 +300,22 @@ function SettingsCard() {
       <NumberField label="On target: direction within" unit="°" value={s.onTargetAzDeg} min={0.1} max={10} onChange={(v) => updateSettings({ onTargetAzDeg: v })} />
       <NumberField label="Wind uncertainty in steady air (each axis)" unit="m/s" value={s.windSigmaMs} min={0} max={10} onChange={(v) => updateSettings({ windSigmaMs: v })} />
       <Toggle label="Widen the landing zone for gusts" checked={s.gustWidening} onChange={(v) => updateSettings({ gustWidening: v })} hint="(gust − mean) ÷ 3, added to the steady-air figure" />
-      <Toggle label="Scale wind with height (1/7 power law)" checked={s.windShear} onChange={(v) => updateSettings({ windShear: v })} />
+      <Select
+        label="Wind higher up"
+        value={s.windProfile}
+        options={[
+          { value: 'forecast', label: 'From the forecast profile' },
+          { value: 'rule', label: '1/7 rule of thumb' },
+          { value: 'off', label: 'Same at all heights' },
+        ]}
+        onChange={(v) => updateSettings({ windProfile: v })}
+      />
+      <Toggle
+        label="Use Environment Agency 1 m LIDAR (England)"
+        checked={s.useEaLidar}
+        onChange={(v) => updateSettings({ useEaLidar: v })}
+        hint="(sharper ground near the launch point, and trees, hedges and buildings for 'in the way' checks; about 1 MB per new field)"
+      />
       <Toggle label="Audio aiming cues" checked={s.audio} onChange={(v) => updateSettings({ audio: v })} />
       <Select
         label="Theme"
@@ -303,6 +391,34 @@ function SatelliteCard() {
   );
 }
 
+function DetectionCard() {
+  const s = settings.value;
+  const peak = joltPeak.value;
+  return (
+    <Card title="Shot detection and countdown">
+      <Toggle
+        label="Detect shots automatically"
+        checked={s.autoDetect}
+        onChange={(v) => updateSettings({ autoDetect: v })}
+        hint="(the jolt of firing locks the aim from just before, opens a shot record and starts the flight clock)"
+      />
+      <NumberField label="Jolt threshold" unit="m/s²" value={s.detectThresholdMs2} min={5} max={200} onChange={(v) => updateSettings({ detectThresholdMs2: v })} />
+      <p class="small">
+        Live jolt: <strong>{fmt(peak, 0)} m/s²</strong>{' '}
+        <span class="meter" aria-hidden="true">
+          <span style={{ width: `${Math.min(100, (peak / Math.max(s.detectThresholdMs2, 1)) * 50)}%` }} class={peak >= s.detectThresholdMs2 ? 'over' : ''} />
+        </span>
+      </p>
+      <p class="muted small">
+        With sensors on, handle the cannon normally and watch the live jolt: set the threshold well above that, and below what a shot gives (the
+        bar's midpoint is the threshold).
+      </p>
+      <Toggle label="Count down to the landing" checked={s.countdown} onChange={(v) => updateSettings({ countdown: v })} />
+      <Toggle label="Speak the countdown" checked={s.countdownVoice} onChange={(v) => updateSettings({ countdownVoice: v })} hint="(off: beeps)" />
+    </Card>
+  );
+}
+
 function SessionCard() {
   const s = session.value;
   const ip = installPrompt.value;
@@ -357,6 +473,7 @@ export function SetupPanel() {
       <WeatherCard />
       <SettingsCard />
       <SatelliteCard />
+      <DetectionCard />
       <SessionCard />
       {settings.value.devMode && <DevPanel />}
       <AboutCard />

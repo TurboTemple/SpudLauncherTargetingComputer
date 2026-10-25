@@ -5,7 +5,9 @@
 
 import type { StopReason } from './core/ballistics';
 import type { CalResult, CalShot, CalStart } from './core/calibration';
+import type { Conditions, FootprintPoint, FootprintSpreads, RangeRow } from './core/footprint';
 import type { Geo } from './core/geo';
+import type { Obstacle } from './core/terrain';
 import type { BaseLaunch, TargetSolution } from './core/inverse';
 import type { LinearZone, MonteCarloResult, Spreads, ZoneInputs } from './core/uncertainty';
 import type { Vec3 } from './core/vec';
@@ -15,6 +17,8 @@ export interface TerrainRequest {
   /** Launch point, radians. Null clears the grid (flat ground). */
   origin: Geo | null;
   tileUrl: string;
+  /** Also use Environment Agency 1 m LIDAR (England). */
+  ea: boolean;
 }
 
 export interface PredictRequest {
@@ -53,7 +57,20 @@ export interface FitRequest {
   start: CalStart;
 }
 
-export type SolverRequestBody = TerrainRequest | PredictRequest | TargetRequest | MonteCarloRequest | GroundRequest | FitRequest;
+export interface FootprintRequest {
+  kind: 'footprint';
+  conditions: Conditions;
+  spreads: FootprintSpreads;
+}
+
+export interface RangeCardRequest {
+  kind: 'rangecard';
+  conditions: Conditions;
+  azimuth: number;
+  massKg: number;
+}
+
+export type SolverRequestBody = TerrainRequest | PredictRequest | TargetRequest | MonteCarloRequest | GroundRequest | FitRequest | FootprintRequest | RangeCardRequest;
 export type SolverRequest = SolverRequestBody & { id: number };
 export type RequestKind = SolverRequestBody['kind'];
 
@@ -63,6 +80,12 @@ export interface TerrainStatus {
   launchGroundM: number;
   coverage: number;
   halfSizeM: number;
+  /** 'lidar': EA 1 m data near the launch point (tiles beyond); 'tiles': AWS terrain only. */
+  source?: 'lidar' | 'tiles';
+  /** Share of the grid from LIDAR. */
+  fineCoverage?: number;
+  /** A surface model (trees, hedges, buildings) is loaded for obstacle checks. */
+  surface?: boolean;
   error?: string;
 }
 
@@ -77,6 +100,8 @@ export interface Prediction {
   /** Horizontal range, m. */
   range: number;
   computeMs: number;
+  /** First tree, hedge or building the path passes through (needs the LIDAR surface). */
+  obstacle: Obstacle | null;
 }
 
 export interface ZoneResult extends LinearZone {
@@ -91,12 +116,14 @@ export interface ResponseMap {
     zone: ZoneResult | null;
     /** Impact with wind − impact in still air (ENU, m); sent with the zone. */
     windEffect: [number, number] | null;
-    profile: { d: number[]; h: number[] } | null;
+    profile: { d: number[]; h: number[]; surface?: number[] } | null;
   };
-  target: { solution: TargetSolution; targetZ: number };
+  target: { solution: TargetSolution; targetZ: number; obstacles: { low: Obstacle | null; high: Obstacle | null } };
   montecarlo: MonteCarloResult;
   ground: { heights: number[] };
   fit: CalResult;
+  footprint: { points: FootprintPoint[] };
+  rangecard: { rows: RangeRow[] };
 }
 
 export type SolverResponse = {

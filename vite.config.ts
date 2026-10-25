@@ -41,6 +41,17 @@ export default defineConfig({
             runtimeCaching: [
               tileCache('osm-tiles', /^https:\/\/tile\.openstreetmap\.org\/.*/),
               tileCache('terrain-tiles', /^https:\/\/s3\.amazonaws\.com\/elevation-tiles-prod\/terrarium\/.*/),
+              // Environment Agency LIDAR (OGL): requests are snapped to a 0.002° grid, so a field
+              // opened once is served from here offline.
+              {
+                urlPattern: /^https:\/\/environment\.data\.gov\.uk\/geoservices\/datasets\/.*\/wcs\?.*GetCoverage.*/,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'ea-lidar',
+                  expiration: { maxEntries: 60, maxAgeSeconds: 90 * 24 * 3600 },
+                  cacheableResponse: { statuses: [200] },
+                },
+              },
               // MapTiler allows a temporary per-user cache (Cloud terms §5.7): keep viewed tiles a week.
               // Esri imagery is deliberately absent: its terms forbid keeping tiles for offline use.
               {

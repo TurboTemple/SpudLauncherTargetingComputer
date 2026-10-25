@@ -6,22 +6,27 @@
 
 import { flatGround, simulate, type GroundFn } from '../core/ballistics';
 import { fitCalibration } from '../core/calibration';
+import { keepClearFootprint, rangeCard } from '../core/footprint';
 import { solveTarget } from '../core/inverse';
-import { profileAlong, type HeightGrid } from '../core/terrain';
+import { buildBlendedGrid, buildSurfaceGrid, findObstacle, profileAlong, type HeightGrid } from '../core/terrain';
 import { linearZone, monteCarlo, sensitivities } from '../core/uncertainty';
-import { loadTerrainGrid } from '../data/terrainTiles';
+import { DEG } from '../core/angles';
+import { EA_HALF_SIZE_M, inEngland, loadEaLayer } from '../data/eaLidar';
+import { loadTerrainTiles } from '../data/terrainTiles';
 import type { RequestKind, ResponseMap, SolverRequest, SolverResponse, TerrainStatus } from '../types';
 
 declare const self: DedicatedWorkerGlobalScope;
 
 let grid: HeightGrid | null = null;
+/** Ground plus trees, hedges and buildings (EA first-return DSM), relative to launch ground. */
+let surface: HeightGrid | null = null;
 let ground: GroundFn = flatGround;
 let terrainSeq = 0;
 
 const pending = new Map<RequestKind, SolverRequest>();
 let scheduled = false;
 // Cheap requests first so the live pin never waits behind a slow job.
-const ORDER: RequestKind[] = ['terrain', 'predict', 'ground', 'target', 'montecarlo', 'fit'];
+const ORDER: RequestKind[] = ['terrain', 'predict', 'ground', 'target', 'rangecard', 'footprint', 'montecarlo', 'fit'];
 
 function reply<K extends RequestKind>(kind: K, id: number, body: ResponseMap[K], transfer: Transferable[] = []): void {
   self.postMessage({ kind, id, body } as SolverResponse, transfer);
@@ -65,25 +70,45 @@ async function handle(req: SolverRequest): Promise<void> {
       const seq = ++terrainSeq;
       if (!req.origin) {
         grid = null;
+        surface = null;
         ground = flatGround;
         reply('terrain', req.id, { loaded: false, launchGroundM: NaN, coverage: 0, halfSizeM: 0 });
         return;
       }
       let status: TerrainStatus;
       try {
-        const built = await loadTerrainGrid(req.origin, req.tileUrl);
+        const o = req.origin;
+        const useEa = req.ea && inEngland(o.lat / DEG, o.lon / DEG);
+        const [tiles, dtm, dsm] = await Promise.all([
+          loadTerrainTiles(o, req.tileUrl),
+          useEa ? loadEaLayer('dtm', o) : Promise.resolve(null),
+          useEa ? loadEaLayer('dsm', o) : Promise.resolve(null),
+        ]);
         if (seq !== terrainSeq) return; // superseded while loading
+        const half = tiles ? tiles.halfSizeM : EA_HALF_SIZE_M;
+        const built = buildBlendedGrid(o, half, tiles?.sample ?? null, dtm);
         if (built) {
           grid = built.grid;
           ground = grid.ground();
-          status = { loaded: true, launchGroundM: built.launchGroundM, coverage: built.coverage, halfSizeM: built.halfSizeM };
+          surface = dsm ? buildSurfaceGrid(o, EA_HALF_SIZE_M, dsm, built.launchGroundM, ground) : null;
+          status = {
+            loaded: true,
+            launchGroundM: built.launchGroundM,
+            coverage: built.coverage,
+            halfSizeM: half,
+            source: built.fineCoverage > 0 ? 'lidar' : 'tiles',
+            fineCoverage: built.fineCoverage,
+            surface: surface !== null,
+          };
         } else {
           grid = null;
+          surface = null;
           ground = flatGround;
-          status = { loaded: false, launchGroundM: NaN, coverage: 0, halfSizeM: 0, error: 'No terrain tiles available' };
+          status = { loaded: false, launchGroundM: NaN, coverage: 0, halfSizeM: 0, error: 'No terrain data available' };
         }
       } catch (e) {
         grid = null;
+        surface = null;
         ground = flatGround;
         status = { loaded: false, launchGroundM: NaN, coverage: 0, halfSizeM: 0, error: String(e) };
       }
@@ -94,7 +119,7 @@ async function handle(req: SolverRequest): Promise<void> {
       const t0 = performance.now();
       const s = req.shot;
       const r = simulate(
-        { v0: s.v0, elevation: s.elevation, azimuth: s.azimuth, k: s.kUnit * s.dragScale, wind: s.wind, windShear: s.windShear, h0: s.h0 },
+        { v0: s.v0, elevation: s.elevation, azimuth: s.azimuth, k: s.kUnit * s.dragScale, wind: s.wind, shearExponent: s.shearExponent, h0: s.h0 },
         { ground, recordPath: true },
       );
       const computeMs = performance.now() - t0;
@@ -107,13 +132,22 @@ async function handle(req: SolverRequest): Promise<void> {
         const still = simulate({ v0: s.v0, elevation: s.elevation, azimuth: s.azimuth, k: s.kUnit * s.dragScale, h0: s.h0 }, { ground });
         windEffect = [r.impact[0] - still.impact[0], r.impact[1] - still.impact[1]];
       }
-      const profile = req.profile ? profileAlong(ground, s.azimuth, Math.max(range * 1.15, 50), 2) : null;
       const path = r.path!;
+      const obstacle = surface ? findObstacle(path, surface, ground) : null;
+      let profile: ResponseMap['predict']['profile'] = null;
+      if (req.profile) {
+        const len = Math.max(range * 1.15, 50);
+        profile = profileAlong(ground, s.azimuth, len, 2);
+        if (surface) {
+          const sfc = surface;
+          profile.surface = profileAlong((x, y) => (sfc.contains(x, y) ? sfc.sample(x, y) : ground(x, y)), s.azimuth, len, 2).h;
+        }
+      }
       reply(
         'predict',
         req.id,
         {
-          prediction: { stop: r.stop, impact: r.impact, impactSpeed: r.impactSpeed, impactAngle: r.impactAngle, tof: r.tof, apex: r.apex, path, range, computeMs },
+          prediction: { stop: r.stop, impact: r.impact, impactSpeed: r.impactSpeed, impactAngle: r.impactAngle, tof: r.tof, apex: r.apex, path, range, computeMs, obstacle },
           zone,
           windEffect,
           profile,
@@ -129,7 +163,13 @@ async function handle(req: SolverRequest): Promise<void> {
     case 'target': {
       const z = ground(req.target.x, req.target.y);
       const solution = solveTarget(req.base, { ...req.target, z }, { ground });
-      reply('target', req.id, { solution, targetZ: z });
+      // Trees and hedges along each arc (the solver's own check only knows bare ground).
+      const along = (arc: typeof solution.low) => {
+        if (!arc || !surface) return null;
+        const r = simulate({ ...req.base, elevation: arc.elevation, azimuth: arc.azimuth }, { ground, recordPath: true });
+        return findObstacle(r.path!, surface, ground);
+      };
+      reply('target', req.id, { solution, targetZ: z, obstacles: { low: along(solution.low), high: along(solution.high) } });
       return;
     }
     case 'montecarlo': {
@@ -140,6 +180,14 @@ async function handle(req: SolverRequest): Promise<void> {
     }
     case 'fit': {
       reply('fit', req.id, fitCalibration(req.shots, req.start));
+      return;
+    }
+    case 'footprint': {
+      reply('footprint', req.id, { points: keepClearFootprint(req.conditions, req.spreads, ground) });
+      return;
+    }
+    case 'rangecard': {
+      reply('rangecard', req.id, { rows: rangeCard(req.conditions, req.azimuth, req.massKg, ground) });
       return;
     }
   }

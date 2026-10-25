@@ -35,7 +35,7 @@ export function StatusChips() {
 
   const t = terrain.value;
   const ter =
-    t.state === 'loaded' ? <Chip label="Terrain loaded" state="ok" /> : t.state === 'loading' ? <Chip label="Terrain loading" state="idle" /> : t.state === 'flat' ? <Chip label="Flat ground" state="warn" /> : <Chip label="Terrain: —" state="idle" />;
+    t.state === 'loaded' ? <Chip label={t.source === 'lidar' ? 'Terrain: 1 m LIDAR' : 'Terrain loaded'} state="ok" /> : t.state === 'loading' ? <Chip label="Terrain loading" state="idle" /> : t.state === 'flat' ? <Chip label="Flat ground" state="warn" /> : <Chip label="Terrain: —" state="idle" />;
 
   const atm = atmosphere.value;
   const wx = atm.source === 'manual' ? <Chip label="Weather: manual" state="ok" /> : atm.source === 'open-meteo' ? <Chip label={`Weather ${ago(atm.fetchedAt)}`} state={Date.now() - Date.parse(atm.fetchedAt ?? '') < 3 * 3600e3 ? 'ok' : 'warn'} /> : <Chip label="Weather: default" state="warn" />;

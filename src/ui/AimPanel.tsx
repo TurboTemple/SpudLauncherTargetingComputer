@@ -4,24 +4,33 @@ import { runMonteCarlo } from '../state/solver';
 import { averageLaunchFromGps, cancelLaunchAveraging, lockAim, startSensors, unlockAim } from '../state/sensors';
 import {
   aim,
+  cameraOpen,
+  footprint,
   launch,
   launchAveraging,
+  launchSpeed,
   lockedAim,
   monteCarlo,
   monteCarloBusy,
+  potatoMassKg,
   prediction,
+  projectile,
   sensorsRunning,
+  settings,
   sideViewOpen,
   steady,
   zone,
 } from '../state/store';
+import { updateSettings } from '../state/actions';
 import { aimingTone } from './audio';
+import { NumberField } from './fields';
 import { compassPoint, fmt } from './format';
 import { SideView } from './SideView';
 import { StatusChips } from './StatusChips';
+import { shareCurrentPrediction } from './shareCards';
 import { WindPanel } from './WindPanel';
 
-function Readout({ label, value, unit }: { label: string; value: string; unit: string }) {
+function Readout({ label, value, unit, sub }: { label: string; value: string; unit: string; sub?: string }) {
   return (
     <div class="readout">
       <span class="readout-label">{label}</span>
@@ -29,6 +38,33 @@ function Readout({ label, value, unit }: { label: string; value: string; unit: s
         {value}
         <small>{unit}</small>
       </span>
+      {sub && <span class="readout-sub">{sub}</span>}
+    </div>
+  );
+}
+
+/** Weight of the next potato: drag always depends on it; launch speed too if the cannon gives equal energy. */
+function PotatoWeight() {
+  const m = potatoMassKg.value;
+  const p = projectile.value;
+  const ls = launchSpeed.value;
+  const custom = settings.value.nextMassKg !== null;
+  return (
+    <div class="weight-row">
+      <NumberField label="Potato weight" unit="g" scale={1000} digits={0} value={m} min={0.02} max={1} onChange={(v) => updateSettings({ nextMassKg: v })} />
+      <p class="muted tiny">
+        {custom && p ? (
+          <>
+            Typical {fmt(p.massKg * 1000, 0)} g.{' '}
+            <button class="link" onClick={() => updateSettings({ nextMassKg: null })}>
+              use typical
+            </button>{' '}
+          </>
+        ) : (
+          'Weigh each potato for better predictions. '
+        )}
+        {ls && `Launch ${fmt(ls.v0)} m/s${ls.scale !== 1 ? ` (${ls.scale > 1 ? 'lighter' : 'heavier'} than typical)` : ''}.`}
+      </p>
     </div>
   );
 }
@@ -68,9 +104,22 @@ export function AimPanel() {
         <Readout label="Range" value={fmt(pr?.range, 0)} unit="m" />
         <Readout label="Flight" value={fmt(pr?.tof)} unit="s" />
         <Readout label="Apex" value={fmt(pr?.apex[2], 0)} unit="m" />
-        <Readout label="Impact" value={fmt(pr?.impactSpeed, 0)} unit="m/s" />
+        <Readout
+          label="Impact"
+          value={fmt(pr?.impactSpeed, 0)}
+          unit="m/s"
+          sub={pr ? `${fmt(0.5 * potatoMassKg.value * pr.impactSpeed ** 2, 0)} J` : undefined}
+        />
       </div>
 
+      <div class="row">
+        <button class="btn" disabled={!prediction.value} onClick={() => (cameraOpen.value = true)}>
+          📷 Camera view
+        </button>
+        <button class="btn" disabled={!prediction.value || !launch.value} onClick={() => void shareCurrentPrediction()}>
+          Share card
+        </button>
+      </div>
       <div class="aim-actions">
         <span class={`steady ${st?.steady ? 'on' : ''}`}>{st?.steady ? 'STEADY' : 'MOVING'}</span>
         <button class={`btn btn-big ${locked ? 'btn-warn' : 'btn-primary'}`} disabled={!a} onClick={() => (locked ? unlockAim() : lockAim())}>
@@ -78,6 +127,7 @@ export function AimPanel() {
         </button>
       </div>
 
+      <PotatoWeight />
       <WindPanel />
 
       {!l && (
@@ -138,6 +188,23 @@ export function AimPanel() {
             </p>
           )}
         </div>
+      )}
+
+      {footprint.value && (
+        <p class="small keep-clear">
+          <span class="swatch-footprint" aria-hidden="true" /> Keep clear: shots could land up to <strong>{fmt(footprint.value.maxReach, 0)} m</strong> away
+          (red dotted line; speed, drag and wind all at their worst).{' '}
+          <button class="link" onClick={() => updateSettings({ showFootprint: false })}>
+            hide
+          </button>
+        </p>
+      )}
+      {!settings.value.showFootprint && (
+        <p class="small">
+          <button class="link" onClick={() => updateSettings({ showFootprint: true })}>
+            Show the keep-clear area
+          </button>
+        </p>
       )}
 
       <details class="card" open={sideViewOpen.value} onToggle={(e) => (sideViewOpen.value = (e.target as HTMLDetailsElement).open)}>

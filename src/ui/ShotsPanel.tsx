@@ -20,6 +20,9 @@ import {
 } from '../state/actions';
 import { cannons, fitBusy, fitResult, projectiles, recording, sessions, shots, toast } from '../state/store';
 import { fmt, fmtDeg, timeOf } from './format';
+import { shareRecordedShot } from './shareCards';
+import { ShotStats } from './ShotStats';
+import { SpotterCard } from './SpotterCard';
 
 function RecordFlow() {
   const r = recording.value;
@@ -50,11 +53,11 @@ function RecordFlow() {
       <p class="small">
         Aim locked: {fmtDeg(d.aim.elevationRawDeg - d.aim.mountOffsetDeg)} tilt,{' '}
         {fmtDeg((d.aim.azimuthRawDeg + d.aim.declinationDeg + d.aim.headingBiasDeg + 360) % 360, 0)} azimuth. Predicted flight{' '}
-        {fmt(d.predicted.flightTimeS, 2)} s.
+        {fmt(d.predicted.flightTimeS, 2)} s.{d.massKg !== undefined && ` Potato ${fmt(d.massKg * 1000, 0)} g.`}
       </p>
       <div class="row">
         {r.firedAt === null ? (
-          <button class="btn btn-big" onClick={markFired}>
+          <button class="btn btn-big" onClick={() => markFired()}>
             Fire
           </button>
         ) : (
@@ -174,6 +177,8 @@ export function ShotsPanel() {
     <div class="panel-inner">
       <RecordFlow />
       <FitCard />
+      <ShotStats />
+      <SpotterCard />
       <section class="card">
         <header class="card-head">
           <h2>Shot log ({shots.value.length})</h2>
@@ -201,13 +206,17 @@ export function ShotsPanel() {
                     </p>
                     <p>
                       {fmt(s.atmosphere.tempC)} °C, {fmt(s.atmosphere.pressureHpa, 0)} hPa, wind {fmt(s.atmosphere.windSpeedMs)} m/s from{' '}
-                      {fmt(s.atmosphere.windFromDeg, 0)}°. v0 {fmt(s.conditions.v0)} m/s, drag ×{fmt(s.conditions.dragScale, 2)}.
+                      {fmt(s.atmosphere.windFromDeg, 0)}°. v0 {fmt(s.conditions.v0)} m/s, drag ×{fmt(s.conditions.dragScale, 2)}
+                      {s.massKg !== undefined ? `, potato ${fmt(s.massKg * 1000, 0)} g` : ''}.
                     </p>
                     <p>
                       Predicted flight {fmt(s.predicted.flightTimeS, 2)} s{s.flightTimeS !== undefined ? `, timed ${fmt(s.flightTimeS, 2)} s` : ''}.
                       {r && ` Fit residual: ${fmt(r.down)} m downrange, ${fmt(r.cross)} m sideways${r.dt !== undefined ? `, ${fmt(r.dt, 2)} s` : ''}.`}
                     </p>
                     <div class="row">
+                      <button class="btn btn-small" onClick={() => void shareRecordedShot(s)}>
+                        Share card
+                      </button>
                       <button class="btn btn-small" onClick={() => void toggleExclude(s.id)}>
                         {s.excluded ? 'Include in fits' : 'Exclude from fits'}
                       </button>

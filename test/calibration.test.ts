@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { toDeg, toRad } from '../src/core/angles';
 import { dragFactor } from '../src/core/atmosphere';
 import { horizontalRange, simulate } from '../src/core/ballistics';
-import { fitCalibration, interpolateV0, simulateShot, type CalShot } from '../src/core/calibration';
+import { fitCalibration, fitPowerCurve, simulateShot, speedAtSetting, type CalShot } from '../src/core/calibration';
 import { createRng } from '../src/core/random';
 
 const K = dragFactor(1.225, 0.6, 0.05, 0.15);
@@ -104,14 +104,16 @@ describe('calibration', () => {
     expect(fit.dragScale.pot!.value).toBeLessThanOrEqual(3);
   });
 
-  it('interpolates launch speed between numeric settings', () => {
-    const pts = [
-      { numeric: 40, v0: 30 },
-      { numeric: 80, v0: 50 },
-    ];
-    expect(interpolateV0(pts, 60)).toEqual({ v0: 40, clamped: false });
-    expect(interpolateV0(pts, 100)).toEqual({ v0: 50, clamped: true });
-    expect(interpolateV0([], 1)).toBeNull();
+  it('fits speed against pressure as a power law', () => {
+    const truth = (p: number) => 6 * p ** 0.45;
+    const c = fitPowerCurve([40, 60, 90].map((p) => ({ numeric: p, v0: truth(p) })))!;
+    expect(c.b).toBeCloseTo(0.45, 10);
+    expect(speedAtSetting(c, 75)).toBeCloseTo(truth(75), 8);
+    expect([c.min, c.max, c.points]).toEqual([40, 90, 3]);
+    // One calibrated setting: speed scales with √pressure.
+    const one = fitPowerCurve([{ numeric: 60, v0: 40 }])!;
+    expect(speedAtSetting(one, 15)).toBeCloseTo(20, 10);
+    expect(fitPowerCurve([])).toBeNull();
   });
 });
 
@@ -123,5 +125,38 @@ describe('calibration bounds', () => {
     const fit = fitCalibration(shots, START);
     const atBound = [fit.v0.p!, fit.dragScale.pot!].some((v) => v.atBound);
     expect(atBound).toBe(true);
+  });
+});
+
+describe('calibration with potato weights', () => {
+  it('recovers the reference-weight speed when speed depends on weight (same energy)', () => {
+    const mRef = 0.15;
+    const rng = createRng(31);
+    const vRef = 45;
+    const shots: CalShot[] = [20, 28, 36, 44, 52, 60].map((el, i) => {
+      const m = 0.1 + 0.1 * rng.next(); // 100–200 g potatoes
+      const shot: CalShot = {
+        id: `w${i}`,
+        setting: 'p',
+        projectile: 'pot',
+        session: 's',
+        elevation: toRad(el),
+        azimuth: rng.next() * 2 * Math.PI,
+        h0: 1,
+        kUnit: dragFactor(1.225, 0.6, 0.05, m), // lighter potatoes slow down more
+        speedScale: Math.sqrt(mRef / m),
+        wind: [0, 0, 0],
+        impact: { x: 0, y: 0, z: 0 },
+        sigmaM: 0.5,
+      };
+      const r = simulateShot(shot, vRef, 1, 0);
+      shot.impact = { x: r.impact[0], y: r.impact[1], z: 0 };
+      shot.flightTime = r.tof;
+      return shot;
+    });
+    const fit = fitCalibration(shots, { v0: { p: 40 }, dragScale: { pot: 1 }, headingBias: {} });
+    expect(Math.abs(fit.v0.p!.value / vRef - 1)).toBeLessThan(0.01);
+    // Each shot's implied speed comes back in reference-weight units too.
+    for (const s of fit.speedScatter.p!.perShot) expect(Math.abs(s.v0 / vRef - 1)).toBeLessThan(0.01);
   });
 });

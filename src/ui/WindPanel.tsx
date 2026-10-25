@@ -5,8 +5,10 @@
  */
 
 import { fetchWeatherNow } from '../state/actions';
-import { aim, atmosphere, settings, windEffect, windSpread } from '../state/store';
+import { shearFactor } from '../core/atmosphere';
+import { aim, atmosphere, prediction, shear, wind10, windEffect, windSpread } from '../state/store';
 import { ago, compassPoint, fmt } from './format';
+import { WindTrend } from './WindTrend';
 
 const CALM = 0.3; // m/s
 
@@ -35,7 +37,9 @@ export function WindPanel() {
   const a = aim.value;
   const ws = windSpread.value;
   const eff = windEffect.value;
-  const speed = atm.windSpeedMs;
+  const speed = wind10.value.speed;
+  const sh = shear.value;
+  const apexZ = prediction.value?.apex[2];
   const calm = speed < CALM;
   const windTo = calm ? null : (atm.windFromDeg + 180) % 360;
 
@@ -68,7 +72,7 @@ export function WindPanel() {
 
   const source =
     atm.source === 'open-meteo'
-      ? `Forecast model, 10 m height, ${ago(atm.fetchedAt)}`
+      ? `Forecast, 10 m height, ${ago(atm.fetchedAt)}`
       : atm.source === 'manual'
         ? 'Your reading'
         : 'No weather yet: still air assumed';
@@ -83,20 +87,31 @@ export function WindPanel() {
           ) : (
             <>
               <strong>{fmt(speed)} m/s</strong> from {compassPoint(atm.windFromDeg)} ({fmt(atm.windFromDeg, 0)}°)
-              {atm.windGustsMs !== undefined && <>, gusts {fmt(atm.windGustsMs)} m/s</>}
+              {wind10.value.gust !== undefined && <>, gusts {fmt(wind10.value.gust)} m/s</>}
             </>
           )}
         </p>
         {parts.length > 0 && <p class="small">{parts.join(' · ')}</p>}
         {effect && <p class="small">{effect}</p>}
+        {!calm && sh.alpha > 0 && apexZ !== undefined && apexZ > 12 && (
+          <p class="small">
+            At the apex ({fmt(apexZ, 0)} m up): {fmt(shearFactor(apexZ, sh.alpha), 2)}× the 10 m wind (
+            {sh.source === 'forecast' ? `forecast profile, α ${fmt(sh.alpha, 2)}` : '1/7 rule of thumb'})
+          </p>
+        )}
+        {atm.source === 'manual' && atm.measuredAtM !== undefined && atm.measuredAtM < 5 && sh.alpha > 0 && (
+          <p class="muted tiny">
+            Your {fmt(atm.windSpeedMs)} m/s at hand height is about {fmt(speed)} m/s at 10 m.
+          </p>
+        )}
         <p class="muted tiny">
-          {source}
-          {settings.value.windShear ? ', scaled with height' : ''}. Landing zone allows ±{fmt(ws.total)} m/s
+          {source}. Landing zone allows ±{fmt(ws.total)} m/s
           {ws.gust > 0.05 ? ' (widened for gusts)' : ''}.{' '}
           <button class="link" onClick={() => void fetchWeatherNow()}>
             {atm.source === 'manual' ? 'Use forecast' : 'Refresh'}
           </button>
         </p>
+        {atm.source === 'open-meteo' && atm.trend && <WindTrend trend={atm.trend} />}
       </div>
     </section>
   );

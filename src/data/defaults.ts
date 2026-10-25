@@ -31,7 +31,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autoLockAfterS: 1,
   onTargetElevDeg: 0.3,
   onTargetAzDeg: 1,
-  windShear: false,
+  windProfile: 'forecast',
   elevationSigmaDeg: 0.3,
   azimuthSigmaDeg: 3,
   azimuthSigmaLandmarkDeg: 1,
@@ -52,6 +52,17 @@ export const DEFAULT_SETTINGS: AppSettings = {
   activeSettingId: '',
   activeProjectileId: '',
   safetyAckSession: '',
+  nextMassKg: null,
+  useEaLidar: true,
+  game: null,
+  spotter: null,
+  cameraFovDeg: 68,
+  cameraHeightM: 1.5,
+  showFootprint: true,
+  autoDetect: false,
+  detectThresholdMs2: 25,
+  countdown: true,
+  countdownVoice: true,
 };
 
 export const LIMITS = {

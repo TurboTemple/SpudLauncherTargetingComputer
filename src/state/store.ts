@@ -2,9 +2,9 @@
 
 import { computed, signal } from '@preact/signals';
 import { toRad } from '../core/angles';
-import { airDensity, dragFactor, gustSigma, KELVIN, windSigma, windVector } from '../core/atmosphere';
+import { airDensity, DEFAULT_SHEAR_EXPONENT, dragFactor, gustSigma, KELVIN, referenceWind, windSigma, windVector } from '../core/atmosphere';
 import type { CalResult } from '../core/calibration';
-import { interpolateV0 } from '../core/calibration';
+import { fitPowerCurve, speedAtSetting } from '../core/calibration';
 import type { SteadyStats } from '../core/filters';
 import type { MonteCarloResult, Spreads, ZoneInputs } from '../core/uncertainty';
 import { DEFAULT_ATMOSPHERE, DEFAULT_SETTINGS } from '../data/defaults';
@@ -35,29 +35,69 @@ export const projectile = computed<Projectile | null>(
   () => projectiles.value.find((p) => p.id === settings.value.activeProjectileId) ?? projectiles.value[0] ?? null,
 );
 
-/** Launch speed in use: calibrated value, else interpolated from calibrated numeric settings, else the entered value. */
-export const effectiveV0 = computed<{ v0: number; source: 'fit' | 'interpolated' | 'entered' } | null>(() => {
+/** Speed against pressure (or any numeric setting), fitted over this cannon's calibrated settings. */
+export const pressureCurve = computed(() =>
+  fitPowerCurve((cannon.value?.settings ?? []).filter((o) => o.fittedAt && o.numeric !== undefined).map((o) => ({ numeric: o.numeric!, v0: o.v0 }))),
+);
+
+/**
+ * The setting's launch speed (for a reference-weight potato): calibrated, else read off the
+ * pressure curve, else as entered.
+ */
+export const effectiveV0 = computed<{ v0: number; source: 'fit' | 'curve' | 'entered'; extrapolated?: boolean } | null>(() => {
   const s = powerSetting.value;
   if (!s) return null;
   if (s.fittedAt) return { v0: s.v0, source: 'fit' };
-  if (s.numeric !== undefined) {
-    const pts = (cannon.value?.settings ?? []).filter((o) => o.fittedAt && o.numeric !== undefined).map((o) => ({ numeric: o.numeric!, v0: o.v0 }));
-    if (pts.length >= 2) {
-      const r = interpolateV0(pts, s.numeric);
-      if (r) return { v0: r.v0, source: 'interpolated' };
-    }
+  const curve = pressureCurve.value;
+  if (s.numeric !== undefined && s.numeric > 0 && curve) {
+    return { v0: speedAtSetting(curve, s.numeric), source: 'curve', extrapolated: s.numeric < curve.min * 0.9 || s.numeric > curve.max * 1.1 };
   }
   return { v0: s.v0, source: 'entered' };
 });
 
-export const calibrated = computed(() => effectiveV0.value?.source === 'fit' || effectiveV0.value?.source === 'interpolated');
+export const calibrated = computed(() => effectiveV0.value !== null && effectiveV0.value.source !== 'entered');
+
+/** Weight of the next potato, defaulting to the projectile's typical (reference) weight. */
+export const potatoMassKg = computed(() => settings.value.nextMassKg ?? projectile.value?.massKg ?? 0.15);
+
+/**
+ * Launch speed for this potato. When the cannon gives every shot the same energy, a lighter
+ * potato leaves faster: v = v_ref √(m_ref / m).
+ */
+export const launchSpeed = computed<{ v0: number; scale: number } | null>(() => {
+  const v = effectiveV0.value;
+  const p = projectile.value;
+  if (!v || !p) return null;
+  const scale = cannon.value?.massAffectsSpeed ? Math.sqrt(p.massKg / potatoMassKg.value) : 1;
+  return { v0: v.v0 * scale, scale };
+});
+
+/** Shear exponent in use and where it came from. */
+export const shear = computed<{ alpha: number; source: 'forecast' | 'rule' | 'off' }>(() => {
+  const mode = settings.value.windProfile;
+  if (mode === 'off') return { alpha: 0, source: 'off' };
+  const atm = atmosphere.value;
+  if (mode === 'forecast' && atm.source === 'open-meteo' && atm.shearExponent !== undefined) return { alpha: atm.shearExponent, source: 'forecast' };
+  return { alpha: DEFAULT_SHEAR_EXPONENT, source: 'rule' };
+});
+
+/** Wind at the 10 m reference height (manual readings taken lower down are scaled up). */
+export const wind10 = computed(() => {
+  const atm = atmosphere.value;
+  const h = atm.source === 'manual' ? atm.measuredAtM : undefined;
+  const a = shear.value.alpha;
+  return {
+    speed: referenceWind(atm.windSpeedMs, h, a),
+    gust: atm.windGustsMs === undefined ? undefined : referenceWind(atm.windGustsMs, h, a),
+  };
+});
 
 export const airRho = computed(() => airDensity(atmosphere.value.pressureHpa * 100, atmosphere.value.tempC + KELVIN));
 
-/** Drag factor at drag scale 1 for the current projectile and air, 1/m. */
+/** Drag factor at drag scale 1 for the current projectile, potato weight and air, 1/m. */
 export const kUnit = computed(() => {
   const p = projectile.value;
-  return p ? dragFactor(airRho.value, p.cd, p.diameterM, p.massKg, 1) : 0;
+  return p ? dragFactor(airRho.value, p.cd, p.diameterM, potatoMassKg.value, 1) : 0;
 });
 
 // --- Sensors -------------------------------------------------------------------------
@@ -85,6 +125,8 @@ export interface AimReading {
 export const liveAim = signal<AimReading | null>(null);
 export const steady = signal<SteadyStats | null>(null);
 export const lockedAim = signal<AimReading | null>(null);
+/** Largest jolt (m/s²) in the last half second, for tuning the shot detector. */
+export const joltPeak = signal(0);
 /** Time (performance seconds) of the last metal warning. */
 export const metalWarningAt = signal(0);
 export const aim = computed(() => lockedAim.value ?? liveAim.value);
@@ -110,7 +152,9 @@ export const terrain = signal<TerrainStatus & { state: 'none' | 'loading' | 'loa
 export const prediction = signal<Prediction | null>(null);
 export const zone = signal<ZoneResult | null>(null);
 export const sideViewOpen = signal(false);
-export const sideProfile = signal<{ d: number[]; h: number[] } | null>(null);
+export const sideProfile = signal<{ d: number[]; h: number[]; surface?: number[] } | null>(null);
+/** Keep-clear area around the launch point (ENU points), and its furthest reach. */
+export const footprint = signal<{ points: { x: number; y: number; reach: number }[]; maxReach: number } | null>(null);
 export const monteCarlo = signal<(MonteCarloResult & { origin: LatLon }) | null>(null);
 export const monteCarloBusy = signal(false);
 
@@ -118,7 +162,7 @@ export const shotInputs = computed<ZoneInputs | null>(() => {
   const a = aim.value;
   const c = cannon.value;
   const p = projectile.value;
-  const v = effectiveV0.value;
+  const v = launchSpeed.value;
   if (!a || !c || !p || !v) return null;
   const atm = atmosphere.value;
   return {
@@ -127,8 +171,8 @@ export const shotInputs = computed<ZoneInputs | null>(() => {
     azimuth: toRad(a.azimuthDeg),
     dragScale: p.dragScale,
     kUnit: kUnit.value,
-    wind: windVector(atm.windSpeedMs, toRad(atm.windFromDeg)),
-    windShear: settings.value.windShear,
+    wind: windVector(wind10.value.speed, toRad(atm.windFromDeg)),
+    shearExponent: shear.value.alpha,
     h0: c.muzzleHeightM,
   };
 });
@@ -136,9 +180,9 @@ export const shotInputs = computed<ZoneInputs | null>(() => {
 /** Wind uncertainty per axis for the landing zone: the steady-air setting, widened for gusts. */
 export const windSpread = computed(() => {
   const s = settings.value;
-  const atm = atmosphere.value;
-  const gusts = s.gustWidening ? atm.windGustsMs : undefined;
-  return { base: s.windSigmaMs, gust: gustSigma(atm.windSpeedMs, gusts), total: windSigma(s.windSigmaMs, atm.windSpeedMs, gusts) };
+  const w = wind10.value;
+  const gusts = s.gustWidening ? w.gust : undefined;
+  return { base: s.windSigmaMs, gust: gustSigma(w.speed, gusts), total: windSigma(s.windSigmaMs, w.speed, gusts) };
 });
 
 /** How far the wind moves the predicted impact (ENU, m): impact with wind − impact in still air. */
@@ -151,6 +195,7 @@ export const spreads = computed<Spreads | null>(() => {
   const ps = powerSetting.value;
   const p = projectile.value;
   const v = effectiveV0.value;
+  const scale = launchSpeed.value?.scale ?? 1;
   if (!c || !ps || !p || !v) return null;
   const sensorStdDeg = (steady.value?.elevationStd ?? 0) * (180 / Math.PI);
   const elevationDeg =
@@ -160,7 +205,7 @@ export const spreads = computed<Spreads | null>(() => {
   return {
     elevation: toRad(elevationDeg),
     azimuth: toRad(azimuthDeg),
-    v0: ps.fittedAt ? ps.v0Sigma : s.v0SigmaFrac * v.v0,
+    v0: (ps.fittedAt ? ps.v0Sigma : s.v0SigmaFrac * v.v0) * scale,
     dragScale: p.fittedAt ? p.dragScaleSigma : s.dragScaleSigmaFrac * p.dragScale,
     windE: windSpread.value.total,
     windN: windSpread.value.total,
@@ -202,6 +247,7 @@ export function toast(text: string, kind: Toast['kind'] = 'info', ms = 4000): vo
   setTimeout(() => (toasts.value = toasts.value.filter((t) => t.id !== id)), ms);
 }
 
+export const cameraOpen = signal(false);
 export const installPrompt = signal<(Event & { prompt: () => Promise<void> }) | null>(null);
 export const updateAvailable = signal<(() => void) | null>(null);
 

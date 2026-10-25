@@ -188,3 +188,139 @@ export function profileAlong(ground: GroundFn, azimuth: number, length: number, 
   }
   return { d, h };
 }
+
+// --- Finer terrain (e.g. 1 m LIDAR) blended over the tile grid, and surface obstacles ------
+
+/** Absolute height (m) at a geographic position; NaN where the source has no data. */
+export type GeoSampler = (p: Geo) => number;
+
+/** Median of a sample (for datum offsets between sources). */
+function median(xs: number[]): number {
+  if (!xs.length) return 0;
+  const s = [...xs].sort((a, b) => a - b);
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2;
+}
+
+export interface BlendedGrid extends BuiltGrid {
+  /** Share of grid points taken from the fine source. */
+  fineCoverage: number;
+}
+
+/**
+ * Square ENU grid of heights relative to the launch ground: the fine source where it has data,
+ * the coarse source elsewhere, shifted by the median difference between the two so there is no
+ * step at the edge of the fine data (the sources use different vertical datums).
+ */
+export function buildBlendedGrid(
+  origin: Geo,
+  halfSizeM: number,
+  coarse: GeoSampler | null,
+  fine: GeoSampler | null,
+  spacing = GRID_SPACING,
+): BlendedGrid | null {
+  const fineLaunch = fine ? fine(origin) : NaN;
+  const coarseLaunch = coarse ? coarse(origin) : NaN;
+  const launch = Number.isFinite(fineLaunch) ? fineLaunch : coarseLaunch;
+  if (!Number.isFinite(launch)) return null;
+  const n = Math.floor((2 * halfSizeM) / spacing) + 1;
+  const x0 = -((n - 1) / 2) * spacing;
+
+  // Datum offset from a sparse sample of points where both sources have data.
+  const diffs: number[] = [];
+  if (fine && coarse) {
+    const stride = Math.max(1, Math.floor(n / 60));
+    for (let j = 0; j < n; j += stride)
+      for (let i = 0; i < n; i += stride) {
+        const g = fromEnu(origin, x0 + i * spacing, x0 + j * spacing);
+        const f = fine(g);
+        const c = coarse(g);
+        if (Number.isFinite(f) && Number.isFinite(c)) diffs.push(c - f);
+      }
+  }
+  const offset = median(diffs);
+
+  const data = new Float32Array(n * n);
+  let valid = 0;
+  let fromFine = 0;
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const g = fromEnu(origin, x0 + i * spacing, x0 + j * spacing);
+      const f = fine ? fine(g) : NaN;
+      let h: number;
+      if (Number.isFinite(f)) {
+        h = f;
+        fromFine++;
+        valid++;
+      } else {
+        const c = coarse ? coarse(g) : NaN;
+        if (Number.isFinite(c)) {
+          h = c - offset;
+          valid++;
+        } else {
+          h = launch;
+        }
+      }
+      data[j * n + i] = h - launch;
+    }
+  }
+  return { grid: new HeightGrid(x0, x0, spacing, n, n, data), launchGroundM: launch, coverage: valid / (n * n), fineCoverage: fromFine / (n * n) };
+}
+
+/** Surface (ground plus trees, hedges, buildings) relative to the launch ground; ground where unknown. */
+export function buildSurfaceGrid(origin: Geo, halfSizeM: number, surface: GeoSampler, launchGroundM: number, ground: GroundFn, spacing = GRID_SPACING): HeightGrid {
+  const n = Math.floor((2 * halfSizeM) / spacing) + 1;
+  const x0 = -((n - 1) / 2) * spacing;
+  const data = new Float32Array(n * n);
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const x = x0 + i * spacing;
+      const y = x0 + j * spacing;
+      const s = surface(fromEnu(origin, x, y));
+      data[j * n + i] = Number.isFinite(s) ? Math.max(s - launchGroundM, ground(x, y)) : ground(x, y);
+    }
+  }
+  return new HeightGrid(x0, x0, spacing, n, n, data);
+}
+
+export interface Obstacle {
+  /** Horizontal distance from the launch point, m. */
+  distance: number;
+  x: number;
+  y: number;
+  /** Height of the potato there, and of the surface it meets (relative to launch ground), m. */
+  z: number;
+  top: number;
+  /** How far the feature stands above the bare ground, m. */
+  featureHeight: number;
+}
+
+/**
+ * First place a path (x, y, z triples) passes below the surface model where the surface
+ * stands clear of the bare ground: a tree, hedge or building in the way. Ignores the first few
+ * metres (the cannon and whoever is firing it) and points outside the surface grid.
+ */
+export function findObstacle(
+  path: ArrayLike<number>,
+  surface: HeightGrid,
+  ground: GroundFn,
+  opts: { skipNearM?: number; minFeatureM?: number } = {},
+): Obstacle | null {
+  const skip = opts.skipNearM ?? 3;
+  const minFeature = opts.minFeatureM ?? 1; // ignore benches, bins and survey noise
+  const ox = path[0]!;
+  const oy = path[1]!;
+  for (let k = 3; k + 2 < path.length; k += 3) {
+    const x = path[k]!;
+    const y = path[k + 1]!;
+    const z = path[k + 2]!;
+    const d = Math.hypot(x - ox, y - oy);
+    if (d < skip || !surface.contains(x, y)) continue;
+    const top = surface.sample(x, y);
+    const g = ground(x, y);
+    if (z < top && top - g >= minFeature && z > g) {
+      return { distance: d, x, y, z, top, featureHeight: top - g };
+    }
+  }
+  return null;
+}

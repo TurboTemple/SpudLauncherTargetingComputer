@@ -31,10 +31,10 @@ export interface LaunchParams {
   azimuth: number;
   /** Drag factor k = ρ C_d A / 2m (already multiplied by drag scale), 1/m. */
   k: number;
-  /** Wind in ENU, m/s. With shear on, this is the 10 m reference wind. */
+  /** Wind in ENU, m/s. With shear, this is the 10 m reference wind. */
   wind?: Vec3;
-  /** Scale wind with height by the 1/7 power law (off by default). */
-  windShear?: boolean;
+  /** Power-law shear exponent α for w(z) = w10 (z/10)^α; 0 or absent means uniform wind. */
+  shearExponent?: number;
   /** Muzzle height above the launch point's ground, m. */
   h0: number;
   /** Launch point offset in ENU (x, y). Defaults to the origin. */
@@ -101,7 +101,8 @@ export function simulate(p: LaunchParams, opts: SimOptions = {}): SimResult {
   const wx0 = p.wind?.[0] ?? 0;
   const wy0 = p.wind?.[1] ?? 0;
   const wz0 = p.wind?.[2] ?? 0;
-  const shear = p.windShear === true;
+  const alpha = p.shearExponent ?? 0;
+  const shear = alpha > 0;
   const ox = p.origin?.[0] ?? 0;
   const oy = p.origin?.[1] ?? 0;
   const dr = opts.downrange;
@@ -126,7 +127,7 @@ export function simulate(p: LaunchParams, opts: SimOptions = {}): SimResult {
     let wy = wy0;
     let wz = wz0;
     if (shear) {
-      const f = shearFactor(zz);
+      const f = shearFactor(zz, alpha);
       wx *= f;
       wy *= f;
       wz *= f;

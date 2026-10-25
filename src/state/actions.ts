@@ -2,30 +2,33 @@
 
 import { effect } from '@preact/signals';
 import { circularMean, toDeg, toRad, wrapPi } from '../core/angles';
-import { airDensity, dragFactor, KELVIN, windVector } from '../core/atmosphere';
+import { airDensity, DEFAULT_SHEAR_EXPONENT, dragFactor, KELVIN, referenceWind, windVector } from '../core/atmosphere';
 import type { CalShot } from '../core/calibration';
 import { mean, std } from '../core/filters';
 import { bearing } from '../core/geo';
 import { landmarkOffset } from '../core/orientation';
 import * as store from '../data/db';
 import { DEFAULT_SETTINGS, defaultCannon, defaultProjectile, newId } from '../data/defaults';
-import type { AppSettings, Atmosphere, CannonProfile, Projectile, Session, Shot } from '../data/model';
-import { fetchWeather } from '../data/weather';
-import { enuOf, geoOf, latLonOf, type LatLon } from '../geoDeg';
-import { refreshCorrections, startStandingMark, unlockAim } from './sensors';
+import type { AppSettings, Atmosphere, CannonProfile, GameState, Projectile, Session, Shot } from '../data/model';
+import { matchMarks, type SpotInvite, type SpotMarks } from '../data/spotter';
+import { fetchWeather, fetchWindProfile } from '../data/weather';
+import { distanceM as distanceM_, enuOf, geoOf, latLonOf, type LatLon } from '../geoDeg';
+import { DEFAULT_RINGS, scoreShot } from '../core/game';
+import { refreshCorrections, setShotHandler, startStandingMark, unlockAim } from './sensors';
 import { groundHeights, solver } from './solver';
 import {
   atmosphere,
   cannon,
   cannons,
   declinationDeg,
-  effectiveV0,
   fitBusy,
   fitResult,
   lastFix,
   launch,
+  launchSpeed,
   liveAim,
   lockedAim,
+  potatoMassKg,
   powerSetting,
   prediction,
   projectile,
@@ -35,11 +38,14 @@ import {
   session,
   sessions,
   settings,
+  shear,
   shots,
   steady,
+  target,
   terrain,
   toast,
   wizard,
+  type AimReading,
 } from './store';
 
 const SESSION_GAP_MS = 8 * 3600 * 1000;
@@ -63,6 +69,9 @@ export async function bootstrap(): Promise<void> {
     ps.push(p);
   }
   const s: AppSettings = { ...DEFAULT_SETTINGS, ...stored };
+  // Settings saved before the wind-profile option: the old shear toggle meant the 1/7 rule.
+  const legacy = stored as Partial<AppSettings> & { windShear?: boolean };
+  if (stored.windProfile === undefined && legacy.windShear !== undefined) s.windProfile = legacy.windShear ? 'rule' : 'off';
   // Settings saved before satellite presets existed: a tile URL means the custom provider.
   if (stored.satelliteProvider === undefined && s.satelliteUrl) s.satelliteProvider = 'custom';
   const c = cs.find((x) => x.id === s.activeCannonId) ?? cs[0]!;
@@ -94,6 +103,7 @@ export async function bootstrap(): Promise<void> {
     if (atm.fetchedAt && Date.now() - Date.parse(atm.fetchedAt) < 3600 * 1000) return;
     void fetchWeatherNow(true);
   });
+  setShotHandler(shotDetected);
   ready.value = true;
 }
 
@@ -197,7 +207,10 @@ export async function fetchWeatherNow(quiet = false): Promise<void> {
     return;
   }
   try {
-    setAtmosphere(await fetchWeather(where.lat, where.lon));
+    // The profile and trend are extras: if that request fails, current weather still applies.
+    const [wx, profile] = await Promise.allSettled([fetchWeather(where.lat, where.lon), fetchWindProfile(where.lat, where.lon)]);
+    if (wx.status === 'rejected') throw wx.reason;
+    setAtmosphere({ ...wx.value, ...(profile.status === 'fulfilled' ? profile.value : {}) });
     if (!quiet) toast('Weather updated');
   } catch (e) {
     if (!quiet) toast(`Weather fetch failed: ${(e as Error).message}`, 'error');
@@ -213,7 +226,7 @@ export function beginRecord(): string | null {
   const c = cannon.value;
   const ps = powerSetting.value;
   const p = projectile.value;
-  const v = effectiveV0.value;
+  const v = launchSpeed.value;
   const pred = prediction.value;
   const sess = session.value;
   if (!a) return 'No aim yet: start the sensors';
@@ -229,6 +242,7 @@ export function beginRecord(): string | null {
     cannonId: c.id,
     settingId: ps.id,
     projectileId: p.id,
+    massKg: potatoMassKg.value,
     launch: { lat: l.lat, lon: l.lon, groundHeightM: Number.isFinite(ground) ? ground : 0, accuracyM: l.accuracyM },
     aim: {
       elevationRawDeg: a.elevationRawDeg,
@@ -238,16 +252,65 @@ export function beginRecord(): string | null {
       headingBiasDeg: sess.headingBiasDeg ?? 0,
     },
     atmosphere: { ...atmosphere.value },
-    conditions: { muzzleHeightM: c.muzzleHeightM, windShear: settings.value.windShear, v0: v.v0, dragScale: p.dragScale },
+    conditions: { muzzleHeightM: c.muzzleHeightM, shearExponent: shear.value.alpha, v0: v.v0, dragScale: p.dragScale },
     predicted: { lat: impact.lat, lon: impact.lon, flightTimeS: pred?.tof ?? NaN },
   };
+  const g = settings.value.game;
+  const t = target.value;
+  if (g && t) draft.game = { id: g.id, player: g.player, target: { lat: t.lat, lon: t.lon } };
   recording.value = { draft, firedAt: null, standing: null };
   return null;
 }
 
-export function markFired(): void {
+/** Start the flight clock; `at` is a performance time in seconds (the detected jolt), default now. */
+/** Score a game shot once its impact is known (no-op for other shots). */
+export function scoreGameShot(s: Shot): Shot {
+  if (!s.game || !s.impact) return s;
+  const distanceM = distanceM_(s.game.target, s.impact);
+  const rings = settings.value.game?.id === s.game.id ? settings.value.game.rings : undefined;
+  return { ...s, game: { ...s.game, distanceM, points: scoreShot(distanceM, rings) } };
+}
+
+export function startGame(players: string[]): void {
+  const list = players.map((p) => p.trim()).filter(Boolean);
+  const names = list.length ? list : ['Player 1'];
+  updateSettings({ game: { id: newId(), players: names, player: names[0]!, rings: DEFAULT_RINGS.map((r) => ({ ...r })), rotate: true } });
+}
+
+export function updateGame(patch: Partial<GameState>): void {
+  const g = settings.value.game;
+  if (g) updateSettings({ game: { ...g, ...patch } });
+}
+
+export function endGame(): void {
+  updateSettings({ game: null });
+}
+
+export function markFired(at = performance.now() / 1000, detected = false): void {
   const r = recording.value;
-  if (r) recording.value = { ...r, firedAt: performance.now() / 1000, draft: { ...r.draft, flightTimeS: undefined } };
+  if (!r) return;
+  const firedAt = new Date(Date.now() - (performance.now() / 1000 - at) * 1000).toISOString();
+  recording.value = { ...r, firedAt: at, draft: { ...r.draft, flightTimeS: undefined, firedAt, ...(detected ? { detected: true } : {}) } };
+}
+
+/**
+ * The accelerometer felt a shot. Freeze the aim from just before the jolt (recoil disturbs the
+ * sensors), start a shot record if none is open, and start its flight clock.
+ */
+export function shotDetected(at: number, magnitude: number, preShot: AimReading | null): void {
+  const open = recording.value;
+  if (open) {
+    if (open.firedAt === null && open.draft.flightTimeS === undefined) markFired(at, true);
+    return;
+  }
+  if (preShot) lockedAim.value = preShot;
+  const err = beginRecord();
+  if (err) {
+    toast(`Shot detected but not recorded: ${err}`, 'warn');
+    return;
+  }
+  markFired(at, true);
+  toast(`Shot detected (${magnitude.toFixed(0)} m/s² jolt). Tap Landed when it lands.`);
 }
 
 export function markLanded(): void {
@@ -280,12 +343,21 @@ export function markImpactByGps(): void {
 export async function saveRecord(): Promise<void> {
   const r = recording.value;
   if (!r) return;
-  const shot = r.draft;
+  const shot = scoreGameShot(r.draft);
   await store.putShot(shot);
   shots.value = [...shots.value, shot];
   recording.value = null;
   unlockAim();
-  toast(shot.impact ? 'Shot saved' : 'Shot saved without an impact mark (not used for fitting)');
+  const g = settings.value.game;
+  if (shot.game?.points !== undefined) {
+    toast(`${shot.game.player}: ${shot.game.distanceM!.toFixed(1)} m from the target, ${shot.game.points} points`, 'info', 6000);
+  } else {
+    toast(shot.impact ? 'Shot saved' : 'Shot saved without an impact mark (not used for fitting)');
+  }
+  if (g && shot.game && g.rotate && g.players.length > 1) {
+    const i = g.players.indexOf(g.player);
+    updateGame({ player: g.players[(i + 1) % g.players.length]! });
+  }
 }
 
 export function cancelRecord(): void {
@@ -308,11 +380,12 @@ export async function removeShot(id: string): Promise<void> {
 
 // --- Calibration ---------------------------------------------------------------------
 
-export function toCalShot(s: Shot, p: Projectile): CalShot | null {
+export function toCalShot(s: Shot, p: Projectile, massAffectsSpeed = false): CalShot | null {
   if (!s.impact || s.excluded) return null;
   const e = enuOf(s.launch, s.impact);
   const rho = airDensity(s.atmosphere.pressureHpa * 100, s.atmosphere.tempC + KELVIN);
   const z = s.impact.groundHeightM !== undefined ? s.impact.groundHeightM - s.launch.groundHeightM : 0;
+  const alpha = s.conditions.shearExponent ?? (s.conditions.windShear ? DEFAULT_SHEAR_EXPONENT : 0);
   return {
     id: s.id,
     setting: s.settingId,
@@ -321,9 +394,13 @@ export function toCalShot(s: Shot, p: Projectile): CalShot | null {
     elevation: toRad(s.aim.elevationRawDeg - s.aim.mountOffsetDeg),
     azimuth: toRad(s.aim.azimuthRawDeg + s.aim.declinationDeg + s.aim.headingBiasDeg),
     h0: s.conditions.muzzleHeightM,
-    kUnit: dragFactor(rho, p.cd, p.diameterM, p.massKg, 1),
-    wind: windVector(s.atmosphere.windSpeedMs, toRad(s.atmosphere.windFromDeg)),
-    windShear: s.conditions.windShear,
+    kUnit: dragFactor(rho, p.cd, p.diameterM, s.massKg ?? p.massKg, 1),
+    ...(massAffectsSpeed && s.massKg ? { speedScale: Math.sqrt(p.massKg / s.massKg) } : {}),
+    wind: windVector(
+      referenceWind(s.atmosphere.windSpeedMs, s.atmosphere.source === 'manual' ? s.atmosphere.measuredAtM : undefined, alpha),
+      toRad(s.atmosphere.windFromDeg),
+    ),
+    shearExponent: alpha,
     impact: { x: e.x, y: e.y, z },
     sigmaM: s.impact.sigmaM,
     ...(s.flightTimeS !== undefined && Number.isFinite(s.flightTimeS) ? { flightTime: s.flightTimeS } : {}),
@@ -332,9 +409,10 @@ export function toCalShot(s: Shot, p: Projectile): CalShot | null {
 
 export async function runFit(): Promise<void> {
   const byId = new Map(projectiles.value.map((p) => [p.id, p]));
+  const energyCannons = new Set(cannons.value.filter((c) => c.massAffectsSpeed).map((c) => c.id));
   const cal = shots.value.flatMap((s) => {
     const p = byId.get(s.projectileId);
-    const c = p ? toCalShot(s, p) : null;
+    const c = p ? toCalShot(s, p, energyCannons.has(s.cannonId)) : null;
     return c ? [c] : [];
   });
   if (cal.length === 0) {
@@ -476,6 +554,61 @@ export async function setLandmark(): Promise<void> {
 
 export function closeWizard(): void {
   wizard.value = null;
+}
+
+// --- Spotter -------------------------------------------------------------------------
+
+/** Apply a spotter's marks to shots (and an open record) by matching on fire time. */
+export async function importSpotterMarks(marks: SpotMarks): Promise<void> {
+  const rec = recording.value;
+  const pool: (Shot & { open?: true })[] = [...shots.value.filter((s) => !s.impact), ...(rec && !rec.draft.impact ? [{ ...rec.draft, open: true as const }] : [])];
+  const fired = pool
+    .filter((s) => s.firedAt)
+    .map((s) => ({ id: s.id, firedAt: Date.parse(s.firedAt!) / 1000, flightTime: s.predicted.flightTimeS }));
+  const pairs = matchMarks(
+    marks.m.map(([t, lat, lon]) => ({ t, lat, lon })),
+    fired,
+  );
+  let matched = 0;
+  for (const { mark, shotId } of pairs) {
+    if (!shotId) continue;
+    const s = pool.find((x) => x.id === shotId)!;
+    const l = s.launch;
+    const e = enuOf(l, mark);
+    const h = terrain.value.loaded && launch.value && Math.abs(launch.value.lat - l.lat) < 1e-4 ? await groundHeights([[e.x, e.y]]) : null;
+    const impact = { lat: mark.lat, lon: mark.lon, sigmaM: 2, method: 'spotter' as const, ...(h ? { groundHeightM: l.groundHeightM + h[0]! } : {}) };
+    if (s.open) {
+      const cur = recording.value;
+      if (cur) recording.value = { ...cur, draft: { ...cur.draft, impact } };
+    } else {
+      const next = scoreGameShot({ ...s, impact });
+      shots.value = shots.value.map((x) => (x.id === next.id ? next : x));
+      await store.putShot(next);
+    }
+    matched++;
+  }
+  const unmatched = pairs.length - matched;
+  toast(`Spotter: ${matched} landing${matched === 1 ? '' : 's'} matched to shots${unmatched ? `, ${unmatched} unmatched (no shot fired just before)` : ''}`, matched ? 'info' : 'warn', 7000);
+}
+
+/** Open from a spotter invite: this phone becomes the spotter. */
+export function becomeSpotter(invite: SpotInvite): void {
+  const cur = settings.value.spotter;
+  updateSettings({ spotter: cur && cur.invite.s === invite.s ? { ...cur, invite } : { invite, marks: [] } });
+}
+
+export function addSpotterMark(p: LatLon): void {
+  const cur = settings.value.spotter;
+  if (cur) updateSettings({ spotter: { ...cur, marks: [...cur.marks, { t: Date.now() / 1000, lat: p.lat, lon: p.lon }] } });
+}
+
+export function removeSpotterMark(t: number): void {
+  const cur = settings.value.spotter;
+  if (cur) updateSettings({ spotter: { ...cur, marks: cur.marks.filter((m) => m.t !== t) } });
+}
+
+export function leaveSpotterMode(): void {
+  updateSettings({ spotter: null });
 }
 
 // --- Export / import -----------------------------------------------------------------

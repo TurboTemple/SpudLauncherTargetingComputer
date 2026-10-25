@@ -27,12 +27,39 @@ export function windFromVector(w: Vec3): { speed: number; fromRad: number } {
   return { speed, fromRad: from < 0 ? from + 2 * Math.PI : from };
 }
 
+/** Rule-of-thumb shear exponent for open country. */
+export const DEFAULT_SHEAR_EXPONENT = 1 / 7;
+
 /**
- * Optional power-law wind shear: w(z) = w_ref (z / 10)^(1/7), z clamped to ≥ 1 m.
+ * Power-law wind shear: w(z) = w_ref (z / 10)^α, z clamped to ≥ 1 m.
  * Returns the multiplier applied to the 10 m reference wind.
  */
-export function shearFactor(z: number): number {
-  return Math.pow(Math.max(z, 1) / 10, 1 / 7);
+export function shearFactor(z: number, alpha = DEFAULT_SHEAR_EXPONENT): number {
+  return Math.pow(Math.max(z, 1) / 10, alpha);
+}
+
+/** The 10 m wind implied by a reading taken at `heightM` (e.g. a handheld meter at ~1.5 m). */
+export function referenceWind(speed: number, heightM: number | undefined, alpha: number): number {
+  return heightM !== undefined && heightM > 0 && alpha > 0 ? speed / shearFactor(heightM, alpha) : speed;
+}
+
+/**
+ * Shear exponent α fitted to wind speeds at several heights (least squares through the 10 m
+ * value on log–log axes). Null when the 10 m wind is too light for the ratio to mean anything.
+ * Clamped to [0, 0.5]: very stable night air can exceed 0.5, but then a forecast is unreliable.
+ */
+export function fitShearExponent(speed10: number, levels: readonly { z: number; speed: number }[]): number | null {
+  if (!(speed10 >= 1)) return null;
+  let sxy = 0;
+  let sxx = 0;
+  for (const { z, speed } of levels) {
+    if (!(z > 10) || !(speed > 0)) continue;
+    const x = Math.log(z / 10);
+    sxy += x * Math.log(speed / speed10);
+    sxx += x * x;
+  }
+  if (sxx === 0) return null;
+  return Math.min(0.5, Math.max(0, sxy / sxx));
 }
 
 /**

@@ -114,6 +114,12 @@ export class HeadingProvider {
     return { t: s.t, d: rotated, northReferenced: true, mode: s.mode, compassAccuracy: acc };
   }
 
+  /** North offset in use for ios-compass mode (rad), 0 for north-referenced modes, null if not yet known. */
+  northOffset(mode: HeadingMode): number | null {
+    if (mode !== 'ios-compass') return 0;
+    return this.offset.value;
+  }
+
   reset(): void {
     this.offset.reset();
   }

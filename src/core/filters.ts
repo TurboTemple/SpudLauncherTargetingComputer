@@ -183,3 +183,72 @@ export class HeadingJumpDetector {
     this.samples = [];
   }
 }
+
+/**
+ * Detects the jolt of a shot from accelerometer samples (device frame, m/s²). Uses the
+ * gravity-free acceleration when the device provides it; otherwise subtracts a slow low-pass
+ * gravity estimate. A shot is a magnitude above `threshold`, at most once per `refractory` s.
+ */
+export class ShotDetector {
+  private g: [number, number, number] | null = null;
+  private lastT: number | null = null;
+  private lastShot = -Infinity;
+  /** Largest magnitude seen since the last call to takePeak(), for a live meter. */
+  private peak = 0;
+
+  constructor(
+    public threshold = 25,
+    public refractory = 3,
+    public gravityTau = 0.5,
+  ) {}
+
+  push(t: number, withGravity: Vec3 | null, linear?: Vec3 | null): number | null {
+    let m: number;
+    if (linear) {
+      m = Math.hypot(linear[0], linear[1], linear[2]);
+    } else if (withGravity) {
+      if (!this.g || this.lastT === null) this.g = [withGravity[0], withGravity[1], withGravity[2]];
+      else {
+        const w = 1 - Math.exp(-Math.max(0, t - this.lastT) / this.gravityTau);
+        for (let i = 0; i < 3; i++) this.g[i]! += w * (withGravity[i]! - this.g[i]!);
+      }
+      m = Math.hypot(withGravity[0] - this.g[0], withGravity[1] - this.g[1], withGravity[2] - this.g[2]);
+    } else {
+      return null;
+    }
+    this.lastT = t;
+    this.peak = Math.max(this.peak, m);
+    if (m >= this.threshold && t - this.lastShot >= this.refractory) {
+      this.lastShot = t;
+      return m;
+    }
+    return null;
+  }
+
+  takePeak(): number {
+    const p = this.peak;
+    this.peak = 0;
+    return p;
+  }
+}
+
+/** Keeps a short history of timed values to look up what they were just before an event. */
+export class History<T> {
+  private items: { t: number; v: T }[] = [];
+  constructor(public span = 2) {}
+
+  push(t: number, v: T): void {
+    this.items.push({ t, v });
+    while (this.items.length > 1 && this.items[0]!.t < t - this.span) this.items.shift();
+  }
+
+  /** The latest value at or before time t (or the oldest kept). */
+  at(t: number): T | null {
+    let best: T | null = this.items[0]?.v ?? null;
+    for (const it of this.items) {
+      if (it.t <= t) best = it.v;
+      else break;
+    }
+    return best;
+  }
+}
