@@ -868,3 +868,51 @@ path.residual-pred {
   height: 22px;
   width: auto;
 }
+
+/* --- Wind panel ------------------------------------------------------------------- */
+
+.card.wind {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.wind-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.wind-text p {
+  margin: 2px 0;
+}
+
+.wind-main {
+  font-size: 1.1rem;
+}
+
+.compass {
+  flex: none;
+}
+.compass-ring {
+  fill: var(--bg);
+  stroke: var(--line);
+  stroke-width: 2;
+}
+.compass-n {
+  font-size: 10px;
+  font-weight: 800;
+  fill: var(--fg);
+}
+.compass-barrel {
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.wind-arrow line {
+  stroke: var(--impact);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+.wind-arrow polygon {
+  fill: var(--impact);
+}

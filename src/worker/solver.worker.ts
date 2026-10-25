@@ -100,9 +100,12 @@ async function handle(req: SolverRequest): Promise<void> {
       const computeMs = performance.now() - t0;
       const range = Math.hypot(r.impact[0], r.impact[1]);
       let zone: ResponseMap['predict']['zone'] = null;
+      let windEffect: ResponseMap['predict']['windEffect'] = null;
       if (req.zone) {
         const z = linearZone(s, req.zone, ground);
         zone = { ...z, ...sensitivities(z.J, s.azimuth) };
+        const still = simulate({ v0: s.v0, elevation: s.elevation, azimuth: s.azimuth, k: s.kUnit * s.dragScale, h0: s.h0 }, { ground });
+        windEffect = [r.impact[0] - still.impact[0], r.impact[1] - still.impact[1]];
       }
       const profile = req.profile ? profileAlong(ground, s.azimuth, Math.max(range * 1.15, 50), 2) : null;
       const path = r.path!;
@@ -112,6 +115,7 @@ async function handle(req: SolverRequest): Promise<void> {
         {
           prediction: { stop: r.stop, impact: r.impact, impactSpeed: r.impactSpeed, impactAngle: r.impactAngle, tof: r.tof, apex: r.apex, path, range, computeMs },
           zone,
+          windEffect,
           profile,
         },
         [path.buffer],

@@ -38,6 +38,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   v0SigmaFrac: 0.08,
   dragScaleSigmaFrac: 0.1,
   windSigmaMs: 1.5,
+  gustWidening: true,
   audio: true,
   theme: 'light',
   satelliteProvider: 'none',

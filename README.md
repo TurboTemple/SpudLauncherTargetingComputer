@@ -13,6 +13,7 @@ A phone web app that clips to a potato cannon's barrel and shows, live on a map,
 ## Features
 
 - **Live prediction** at sensor rate: landing point, range, flight time, apex and impact speed, with the path drawn over terrain from AWS Terrain Tiles.
+- **Live weather** for the launch point from Open-Meteo (or your own reading): air density from temperature and pressure, and a wind panel on the Aim screen. The panel shows a compass, gusts, head/tail and cross components for the current aim, and how far the wind moves the shot.
 - **Landing zone**: 50% and 90% ellipses from linear error propagation (about 3 Hz), plus an on-demand 500-shot Monte Carlo view and a "most of your spread is…" hint.
 - **Target mode**: long-press a target to get the tilt and direction for both the low and high arc, with crosswind correction, a "ground in the way" check, and on-screen plus audio aiming cues.
 - **Calibration**: log shots (lock, fire, landed, mark), then fit launch speed per power setting, drag scale per projectile and compass bias per session, each with standard errors, and a residual map.
@@ -142,6 +143,7 @@ Places where the implementation adds to or departs from the technical spec:
   - `PowerSetting.fittedAt` and `Projectile.fittedAt`: drive the "Uncalibrated" label.
   - `CannonProfile.mountTiltSigmaDeg`: from the reversal readings; feeds the elevation spread.
   - `Session.headingBiasSource`: landmark or fit; landmark sighting narrows the azimuth spread to 1°.
+- **Gusts widen the landing zone.** The wind uncertainty per axis is √(base² + ((gust − mean) / 3)²): a reported gust is taken as roughly the mean plus three standard deviations of turbulence. The base (1.5 m/s) covers forecast error and local shelter. Turn this off in Setup to use the base alone.
 - **Fitted values pinned at a bound** are flagged, so contradictory marks or flight times are visible.
 - **Satellite layer**: MapTiler and Esri presets with the user's own key, or a custom URL (see Satellite imagery).
 - **Tiles load in CORS mode**, so the offline cache stores real responses rather than opaque ones, which would each count several MB against storage quota.

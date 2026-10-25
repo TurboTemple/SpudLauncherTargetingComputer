@@ -29,6 +29,7 @@ import {
   targetSolution,
   terrain,
   toast,
+  windEffect,
   zone,
 } from './store';
 
@@ -52,6 +53,7 @@ async function runPredict(): Promise<void> {
   if (!inp) {
     prediction.value = null;
     zone.value = null;
+    windEffect.value = null;
     return;
   }
   const now = performance.now();
@@ -75,6 +77,7 @@ async function runPredict(): Promise<void> {
   }
   prediction.value = res.prediction;
   if (res.zone) zone.value = res.zone;
+  if (res.windEffect) windEffect.value = res.windEffect;
   if (res.profile) sideProfile.value = res.profile;
   const mc = monteCarlo.peek();
   const l = launch.peek();

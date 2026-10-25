@@ -35,6 +35,26 @@ export function shearFactor(z: number): number {
   return Math.pow(Math.max(z, 1) / 10, 1 / 7);
 }
 
+/**
+ * Peak factor for gusts: a reported gust is roughly the mean wind plus about three standard
+ * deviations of its turbulence (typical for short gusts within the reporting hour).
+ */
+export const GUST_PEAK_FACTOR = 3;
+
+/** Turbulent wind spread (1σ, m/s) implied by a mean speed and the gust reported with it. */
+export function gustSigma(mean: number, gust: number | undefined, peak = GUST_PEAK_FACTOR): number {
+  if (gust === undefined || !Number.isFinite(gust)) return 0;
+  return Math.max(0, gust - mean) / peak;
+}
+
+/**
+ * Wind uncertainty per horizontal axis (1σ, m/s): the steady-air base (forecast error, local
+ * shelter) combined with gust turbulence, as independent errors.
+ */
+export function windSigma(base: number, mean: number, gust?: number): number {
+  return Math.hypot(base, gustSigma(mean, gust));
+}
+
 /** k = ρ C_d A / (2m), A = π d² / 4, times the calibrated drag scale. Units 1/m. */
 export function dragFactor(rho: number, cd: number, diameterM: number, massKg: number, dragScale = 1): number {
   const area = (Math.PI * diameterM * diameterM) / 4;

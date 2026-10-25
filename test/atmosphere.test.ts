@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { toRad } from '../src/core/angles';
-import { airDensity, dragFactor, KELVIN, shearFactor, terminalSpeed, windFromVector, windVector } from '../src/core/atmosphere';
+import { airDensity, dragFactor, gustSigma, KELVIN, shearFactor, terminalSpeed, windFromVector, windSigma, windVector } from '../src/core/atmosphere';
 import { G } from '../src/core/ballistics';
 
 describe('atmosphere', () => {
@@ -33,5 +33,18 @@ describe('atmosphere', () => {
     expect(shearFactor(10)).toBeCloseTo(1, 12);
     expect(shearFactor(0.2)).toBeCloseTo(Math.pow(0.1, 1 / 7), 12);
     expect(shearFactor(40)).toBeCloseTo(Math.pow(4, 1 / 7), 12);
+  });
+});
+
+describe('gusts', () => {
+  it('turbulence spread is (gust − mean) / 3, never negative', () => {
+    expect(gustSigma(5, 9)).toBeCloseTo(4 / 3, 12);
+    expect(gustSigma(5, 4)).toBe(0);
+    expect(gustSigma(5, undefined)).toBe(0);
+  });
+
+  it('combines with the steady-air base as independent errors', () => {
+    expect(windSigma(1.5, 5, 9)).toBeCloseTo(Math.hypot(1.5, 4 / 3), 12);
+    expect(windSigma(1.5, 5)).toBe(1.5);
   });
 });

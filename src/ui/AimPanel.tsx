@@ -19,6 +19,7 @@ import { aimingTone } from './audio';
 import { compassPoint, fmt } from './format';
 import { SideView } from './SideView';
 import { StatusChips } from './StatusChips';
+import { WindPanel } from './WindPanel';
 
 function Readout({ label, value, unit }: { label: string; value: string; unit: string }) {
   return (
@@ -76,6 +77,8 @@ export function AimPanel() {
           {locked ? 'Unlock' : 'Lock'}
         </button>
       </div>
+
+      <WindPanel />
 
       {!l && (
         <div class="card">

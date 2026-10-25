@@ -99,6 +99,8 @@ export interface AppSettings {
   v0SigmaFrac: number;
   dragScaleSigmaFrac: number;
   windSigmaMs: number;
+  /** Widen the wind uncertainty using the reported gusts. */
+  gustWidening: boolean;
   audio: boolean;
   theme: 'light' | 'dark';
   satelliteProvider: SatelliteProviderId;

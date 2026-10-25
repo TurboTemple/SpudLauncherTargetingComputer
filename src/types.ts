@@ -86,7 +86,13 @@ export interface ZoneResult extends LinearZone {
 
 export interface ResponseMap {
   terrain: TerrainStatus;
-  predict: { prediction: Prediction; zone: ZoneResult | null; profile: { d: number[]; h: number[] } | null };
+  predict: {
+    prediction: Prediction;
+    zone: ZoneResult | null;
+    /** Impact with wind − impact in still air (ENU, m); sent with the zone. */
+    windEffect: [number, number] | null;
+    profile: { d: number[]; h: number[] } | null;
+  };
   target: { solution: TargetSolution; targetZ: number };
   montecarlo: MonteCarloResult;
   ground: { heights: number[] };

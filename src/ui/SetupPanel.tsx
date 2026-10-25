@@ -208,6 +208,7 @@ function WeatherCard() {
       <NumberField label="Surface pressure" unit="hPa" value={a.pressureHpa} min={700} max={1100} onChange={(v) => set({ pressureHpa: v })} />
       <NumberField label="Wind speed (10 m)" unit="m/s" value={a.windSpeedMs} min={0} max={40} onChange={(v) => set({ windSpeedMs: v })} />
       <NumberField label="Wind from" unit="° true" value={a.windFromDeg} min={0} max={360} onChange={(v) => set({ windFromDeg: v % 360 })} />
+      <NumberField label="Gusts" unit="m/s" optional value={a.windGustsMs ?? NaN} min={0} max={60} onChange={(v) => set({ windGustsMs: Number.isFinite(v) ? v : undefined })} />
       <p class="muted small">Forecast wind is a 10 m average; enter a handheld reading for a better estimate.</p>
     </Card>
   );
@@ -224,7 +225,8 @@ function SettingsCard() {
       <NumberField label="Auto-lock after" unit="s" value={s.autoLockAfterS} min={0.2} max={10} onChange={(v) => updateSettings({ autoLockAfterS: v })} />
       <NumberField label="On target: tilt within" unit="°" value={s.onTargetElevDeg} min={0.05} max={5} onChange={(v) => updateSettings({ onTargetElevDeg: v })} />
       <NumberField label="On target: direction within" unit="°" value={s.onTargetAzDeg} min={0.1} max={10} onChange={(v) => updateSettings({ onTargetAzDeg: v })} />
-      <NumberField label="Wind uncertainty (each axis)" unit="m/s" value={s.windSigmaMs} min={0} max={10} onChange={(v) => updateSettings({ windSigmaMs: v })} />
+      <NumberField label="Wind uncertainty in steady air (each axis)" unit="m/s" value={s.windSigmaMs} min={0} max={10} onChange={(v) => updateSettings({ windSigmaMs: v })} />
+      <Toggle label="Widen the landing zone for gusts" checked={s.gustWidening} onChange={(v) => updateSettings({ gustWidening: v })} hint="(gust − mean) ÷ 3, added to the steady-air figure" />
       <Toggle label="Scale wind with height (1/7 power law)" checked={s.windShear} onChange={(v) => updateSettings({ windShear: v })} />
       <Toggle label="Audio aiming cues" checked={s.audio} onChange={(v) => updateSettings({ audio: v })} />
       <Select

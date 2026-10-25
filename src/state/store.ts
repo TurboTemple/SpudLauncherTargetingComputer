@@ -2,7 +2,7 @@
 
 import { computed, signal } from '@preact/signals';
 import { toRad } from '../core/angles';
-import { airDensity, dragFactor, KELVIN, windVector } from '../core/atmosphere';
+import { airDensity, dragFactor, gustSigma, KELVIN, windSigma, windVector } from '../core/atmosphere';
 import type { CalResult } from '../core/calibration';
 import { interpolateV0 } from '../core/calibration';
 import type { SteadyStats } from '../core/filters';
@@ -133,6 +133,17 @@ export const shotInputs = computed<ZoneInputs | null>(() => {
   };
 });
 
+/** Wind uncertainty per axis for the landing zone: the steady-air setting, widened for gusts. */
+export const windSpread = computed(() => {
+  const s = settings.value;
+  const atm = atmosphere.value;
+  const gusts = s.gustWidening ? atm.windGustsMs : undefined;
+  return { base: s.windSigmaMs, gust: gustSigma(atm.windSpeedMs, gusts), total: windSigma(s.windSigmaMs, atm.windSpeedMs, gusts) };
+});
+
+/** How far the wind moves the predicted impact (ENU, m): impact with wind − impact in still air. */
+export const windEffect = signal<[number, number] | null>(null);
+
 /** Input spreads (1σ) from the table in the spec, replaced by calibration where available. */
 export const spreads = computed<Spreads | null>(() => {
   const s = settings.value;
@@ -151,8 +162,8 @@ export const spreads = computed<Spreads | null>(() => {
     azimuth: toRad(azimuthDeg),
     v0: ps.fittedAt ? ps.v0Sigma : s.v0SigmaFrac * v.v0,
     dragScale: p.fittedAt ? p.dragScaleSigma : s.dragScaleSigmaFrac * p.dragScale,
-    windE: s.windSigmaMs,
-    windN: s.windSigmaMs,
+    windE: windSpread.value.total,
+    windN: windSpread.value.total,
     launch: l ? (l.source === 'map' ? 0.5 : l.accuracyM / 2) : 5,
   };
 });
