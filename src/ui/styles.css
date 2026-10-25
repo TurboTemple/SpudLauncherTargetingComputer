@@ -1,0 +1,855 @@
+/* High-contrast, one-handed, bright-daylight UI. Tap targets ≥ 48 px, main readouts ≥ 32 px. */
+
+:root {
+  --bg: #ffffff;
+  --fg: #000000;
+  --muted: #3a3a3a;
+  --card: #f1f1f1;
+  --line: #000000;
+  --accent: #0040e0;
+  --accent-fg: #ffffff;
+  --ok: #00701f;
+  --ok-bg: #d6f5dc;
+  --warn: #6b4500;
+  --warn-bg: #ffd84d;
+  --bad: #ffffff;
+  --bad-bg: #c40000;
+  --impact: #e00000;
+  --e50: #e00000;
+  --e90: #ff7a00;
+  --track: #0040e0;
+  --target: #8b00d6;
+  --ground: #b9a27a;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #000000;
+  --fg: #ffffff;
+  --muted: #cfcfcf;
+  --card: #161616;
+  --line: #ffffff;
+  --accent: #4da3ff;
+  --accent-fg: #000000;
+  --ok: #6dff8e;
+  --ok-bg: #0e3a18;
+  --warn: #000000;
+  --warn-bg: #ffd84d;
+  --bad: #ffffff;
+  --bad-bg: #d40000;
+  --impact: #ff4d4d;
+  --e50: #ff4d4d;
+  --e90: #ffa64d;
+  --track: #4da3ff;
+  --target: #d58cff;
+  --ground: #6e5a3a;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 17px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+h2 {
+  font-size: 1.15rem;
+  margin: 0 0 8px;
+}
+
+h3 {
+  font-size: 1rem;
+  margin: 12px 0 6px;
+}
+
+p {
+  margin: 6px 0;
+}
+
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 0.9rem;
+}
+.tiny {
+  font-size: 0.75rem;
+}
+
+.loading {
+  display: grid;
+  place-items: center;
+  height: 100dvh;
+  font-size: 1.4rem;
+}
+
+/* --- Layout: map on top (60%), panel below, tab bar at the bottom ------------------ */
+
+.app {
+  display: grid;
+  height: 100dvh;
+  grid-template-rows: 60fr 40fr auto;
+  grid-template-columns: 100%;
+  grid-template-areas: 'map' 'panel' 'tabs';
+}
+
+.app.tab-setup {
+  grid-template-rows: 1fr auto;
+  grid-template-areas: 'panel' 'tabs';
+}
+
+@media (orientation: landscape) and (max-height: 640px), (min-width: 1000px) {
+  .app {
+    grid-template-columns: 60fr 40fr;
+    grid-template-rows: 1fr auto;
+    grid-template-areas: 'map panel' 'tabs tabs';
+  }
+  .app.tab-setup {
+    grid-template-columns: 100%;
+    grid-template-areas: 'panel' 'tabs';
+  }
+}
+
+.map-wrap {
+  grid-area: map;
+  position: relative;
+  min-height: 0;
+  border-bottom: 2px solid var(--line);
+}
+.map-wrap[hidden] {
+  display: none;
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+  background: #ddd;
+}
+
+.map-hint {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 500;
+  background: var(--bg);
+  color: var(--fg);
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.panel {
+  grid-area: panel;
+  overflow-y: auto;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.panel-inner {
+  padding: 10px 12px 24px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.panel > .banner,
+.panel > .banners,
+.panel > .wizard {
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
+/* --- Tab bar --------------------------------------------------------------------- */
+
+.tabbar {
+  grid-area: tabs;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 2px solid var(--line);
+  background: var(--bg);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tabbar button {
+  min-height: 56px;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.tabbar button.active {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.tab-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+/* --- Controls -------------------------------------------------------------------- */
+
+.btn {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 10px 16px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 4px 6px 4px 0;
+  touch-action: manipulation;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+
+.btn-warn {
+  background: var(--warn-bg);
+  border-color: var(--line);
+  color: #000;
+}
+
+.btn-big {
+  min-height: 60px;
+  font-size: 1.2rem;
+  padding: 12px 22px;
+}
+
+.btn-small {
+  min-height: 40px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+}
+
+.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  min-height: 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 52px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 25%, transparent);
+}
+
+.field-label {
+  flex: 1;
+}
+
+.field-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.field input,
+.field select {
+  min-height: 44px;
+  width: 9.5em;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  padding: 6px 8px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.unit {
+  min-width: 2.6em;
+  color: var(--muted);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+}
+
+.toggle input {
+  width: 26px;
+  height: 26px;
+  accent-color: var(--accent);
+  flex: none;
+}
+
+.slider {
+  display: block;
+  margin: 8px 0;
+}
+.slider input {
+  width: 100%;
+  min-height: 40px;
+}
+
+.card {
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 10px 0;
+}
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.card-head h2 {
+  margin: 0;
+}
+
+details.card summary {
+  font-weight: 700;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.pill {
+  display: inline-block;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-left: 4px;
+}
+.pill.ok {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.pill.bad {
+  background: var(--bad-bg);
+  color: var(--bad);
+  border-color: var(--bad-bg);
+}
+
+/* --- Banners and toasts ---------------------------------------------------------- */
+
+.banners {
+  margin-top: 8px;
+}
+
+.banner {
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 10px;
+  margin: 6px 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.banner-warn {
+  background: var(--warn-bg);
+  color: #000;
+}
+.banner-bad {
+  background: var(--bad-bg);
+  color: var(--bad);
+  border-color: var(--bad-bg);
+}
+.banner-info {
+  background: var(--card);
+}
+.banner-safety {
+  background: var(--warn-bg);
+  color: #000;
+  font-weight: 500;
+  margin: 10px 12px;
+}
+.banner-safety .btn {
+  display: flex;
+  margin-top: 8px;
+}
+
+/* Top-left over the map, so a toast never covers the Lock button or readouts while aiming. */
+.toasts {
+  position: fixed;
+  left: 8px;
+  top: calc(48px + env(safe-area-inset-top));
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(72vw, 420px);
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--fg);
+  color: var(--bg);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.3);
+}
+.toast-warn {
+  background: var(--warn-bg);
+  color: #000;
+  border: 2px solid #000;
+}
+.toast-error {
+  background: var(--bad-bg);
+  color: #fff;
+}
+
+/* --- Aim screen ------------------------------------------------------------------ */
+
+.readouts {
+  display: grid;
+  /* Three across on a phone in portrait, two in a narrow landscape side panel. */
+  grid-template-columns: repeat(auto-fit, minmax(6.6rem, 1fr));
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.readout {
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 3px 6px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.readout-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.readout-value {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.readout-value small {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.aim-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.steady {
+  flex: 1;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  border: 3px dashed var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  color: var(--muted);
+}
+
+.steady.on {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border: 3px solid var(--ok);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.chip {
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.chip-ok {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.chip-warn {
+  background: var(--warn-bg);
+  color: #000;
+}
+.chip-bad {
+  background: var(--bad-bg);
+  color: var(--bad);
+  border-color: var(--bad-bg);
+}
+.chip-idle {
+  color: var(--muted);
+}
+
+.sideview {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.sv-ground {
+  fill: var(--ground);
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.sv-path {
+  fill: none;
+  stroke: var(--track);
+  stroke-width: 2.5;
+}
+.sv-apex,
+.sv-impact {
+  fill: var(--impact);
+}
+.sv-target {
+  fill: none;
+  stroke: var(--target);
+  stroke-width: 3;
+}
+.sv-axis {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.sv-label,
+.sv-tick {
+  font-size: 11px;
+  fill: var(--fg);
+  font-weight: 600;
+}
+
+/* --- Target screen --------------------------------------------------------------- */
+
+.hint-big {
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 18px 0;
+}
+
+.arcs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.arc-card {
+  text-align: left;
+  border: 3px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--fg);
+  padding: 8px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.arc-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent);
+}
+
+.arc-card.disabled {
+  opacity: 0.6;
+}
+
+.arc-card h3 {
+  margin: 0 0 4px;
+}
+
+.arc-main {
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.arc-main small {
+  font-size: 0.85rem;
+}
+
+.flag {
+  margin-top: 4px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.flag.bad {
+  color: var(--bad);
+  background: var(--bad-bg);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+.cue {
+  margin: 12px 0;
+  border: 3px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 2.2rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.cue.on {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+/* --- Shots screen ---------------------------------------------------------------- */
+
+.shots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.shots li {
+  border-top: 1px solid color-mix(in srgb, var(--line) 30%, transparent);
+}
+
+.shots li.excluded {
+  opacity: 0.55;
+}
+
+.shot-row {
+  width: 100%;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 3.5em 1fr 1.6fr 1.4fr;
+  gap: 6px;
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.shot-detail {
+  padding: 4px 0 10px;
+}
+
+table.fit {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+table.fit td {
+  padding: 6px 4px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 25%, transparent);
+  vertical-align: top;
+}
+table.fit td.ok {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+.setting-row {
+  border: 2px solid color-mix(in srgb, var(--line) 30%, transparent);
+  border-radius: 10px;
+  padding: 4px 10px;
+  margin: 8px 0;
+}
+.setting-row.active {
+  border-color: var(--accent);
+}
+
+/* --- Map layers ------------------------------------------------------------------ */
+
+.mk span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+.mk-launch span {
+  background: var(--accent);
+  border: 4px solid #fff;
+  box-shadow: 0 0 0 2px #000;
+}
+.mk-impact span {
+  border: 4px solid var(--impact);
+  background: radial-gradient(circle, var(--impact) 0 4px, transparent 5px);
+  box-shadow: 0 0 0 2px #fff;
+}
+.mk-target span {
+  border: 4px solid var(--target);
+  background: radial-gradient(circle, var(--target) 0 4px, #fff 5px 8px, var(--target) 9px 11px, transparent 12px);
+  box-shadow: 0 0 0 2px #fff;
+}
+.mk-mark span {
+  background: #00b33c;
+  border: 4px solid #fff;
+  box-shadow: 0 0 0 2px #000;
+  border-radius: 4px;
+  transform: rotate(45deg);
+}
+.mk-landmark span {
+  background: #ffd400;
+  border: 3px solid #000;
+  border-radius: 3px;
+}
+.mk-landmark.picked span {
+  background: #ff00aa;
+}
+
+path.aim-line {
+  stroke: #000;
+  stroke-width: 2.5;
+  stroke-dasharray: 8 6;
+  fill: none;
+}
+path.track {
+  stroke: var(--track);
+  stroke-width: 4;
+  fill: none;
+}
+path.ellipse {
+  stroke-width: 3;
+  fill-opacity: 0.12;
+}
+path.e50 {
+  stroke: var(--e50);
+  fill: var(--e50);
+}
+path.e90 {
+  stroke: var(--e90);
+  fill: var(--e90);
+  stroke-dasharray: 10 6;
+}
+path.gps-accuracy {
+  stroke: #0a84ff;
+  stroke-width: 2;
+  fill: #0a84ff;
+  fill-opacity: 0.12;
+}
+path.gps-dot {
+  stroke: #fff;
+  stroke-width: 2;
+  fill: #0a84ff;
+  fill-opacity: 1;
+}
+path.target-line {
+  stroke: var(--target);
+  stroke-width: 2.5;
+  stroke-dasharray: 2 6;
+  fill: none;
+}
+path.shot-dot {
+  stroke: #000;
+  stroke-width: 2;
+  fill: #00b33c;
+  fill-opacity: 1;
+}
+path.shot-dot.excluded {
+  fill: #999;
+}
+path.residual {
+  stroke: #ff00aa;
+  stroke-width: 2.5;
+  fill: none;
+}
+path.residual-pred {
+  stroke: #ff00aa;
+  stroke-width: 2;
+  fill: #fff;
+  fill-opacity: 1;
+}
+
+.map-btn {
+  width: 44px;
+  height: 44px;
+  font-size: 1.4rem;
+  border: 2px solid rgb(0 0 0 / 0.4);
+  border-radius: 6px;
+  background: #fff;
+  color: #000;
+  cursor: pointer;
+}
+
+.leaflet-control-zoom a {
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  font-size: 22px !important;
+}
+
+.leaflet-container {
+  font: inherit;
+}
+
+.leaflet-control-attribution {
+  font-size: 10px;
+  line-height: 1.3;
+  max-width: 70%;
+}
