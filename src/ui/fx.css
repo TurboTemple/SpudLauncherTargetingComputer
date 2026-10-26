@@ -1,0 +1,723 @@
+/*
+ * Skin effects (Setup › Skin › Effects). Everything here is decoration: pointer-events none,
+ * animated only with transform and opacity so the compositor does the work, and still when
+ * the phone asks for reduced motion. data-fx='on' is set on <html> for non-plain skins.
+ */
+
+/* --- Shared ----------------------------------------------------------------------------- */
+
+.map-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 450; /* over the map and markers, under the controls, hint and strip */
+  pointer-events: none;
+  overflow: hidden;
+}
+.map-fx > i {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.fx-status {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  font: 700 11px/1.2 var(--font-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fx-ink);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  /* The attribution takes the right of the bottom edge. */
+  max-width: calc(42% - 16px);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.fx-status.raised {
+  bottom: 42px; /* clear of a satellite provider's logo */
+}
+.fx-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--fx-dot, var(--impact));
+}
+.fx-clock {
+  font-variant-numeric: tabular-nums;
+}
+.fx-cursor {
+  width: 0.6em;
+  height: 1em;
+  background: currentColor;
+}
+
+/* Centred on the launch point (a Leaflet marker in its own pane under the shot layers). */
+.fx-launch {
+  pointer-events: none;
+}
+.fx-launch i {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 50%;
+}
+
+/* The word flashed over the map on lock, firing and landing. */
+.fx-flash {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  z-index: 1002;
+  translate: -50% -50%;
+  padding: 8px 18px;
+  white-space: nowrap;
+  pointer-events: none;
+  font: 700 26px/1.1 var(--font-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  animation: fx-flash 1.8s ease-out forwards;
+}
+@keyframes fx-flash {
+  0% {
+    opacity: 0;
+    scale: 1.5;
+  }
+  12% {
+    opacity: 1;
+    scale: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes fx-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes fx-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* --- Modern military: HUD frame, map grid, radar sweep, lock-on brackets ------------------ */
+
+:root[data-skin='military'] {
+  --fx-ink: var(--fg);
+  --fx-line: color-mix(in srgb, var(--fg) 70%, transparent);
+}
+:root[data-skin='military'][data-theme='dark'] {
+  --fx-ink: var(--accent);
+  --fx-line: color-mix(in srgb, var(--accent) 80%, transparent);
+}
+/* Corner brackets framing the map. */
+:root[data-skin='military'] .fx-1 {
+  inset: 26px 10px 10px;
+  background:
+    linear-gradient(var(--fx-line) 0 0) left top / 26px 3px,
+    linear-gradient(var(--fx-line) 0 0) left top / 3px 26px,
+    linear-gradient(var(--fx-line) 0 0) right top / 26px 3px,
+    linear-gradient(var(--fx-line) 0 0) right top / 3px 26px,
+    linear-gradient(var(--fx-line) 0 0) left bottom / 26px 3px,
+    linear-gradient(var(--fx-line) 0 0) left bottom / 3px 26px,
+    linear-gradient(var(--fx-line) 0 0) right bottom / 26px 3px,
+    linear-gradient(var(--fx-line) 0 0) right bottom / 3px 26px;
+  background-repeat: no-repeat;
+}
+/* A grid like the lines on a military map sheet. */
+:root[data-skin='military'] .fx-2 {
+  background:
+    linear-gradient(color-mix(in srgb, var(--fx-ink) 14%, transparent) 1px, transparent 1px) 0 0 / 64px 64px,
+    linear-gradient(90deg, color-mix(in srgb, var(--fx-ink) 14%, transparent) 1px, transparent 1px) 0 0 / 64px 64px;
+}
+:root[data-skin='military'][data-theme='dark'] .fx-3 {
+  background: radial-gradient(ellipse at center, transparent 55%, rgb(0 0 0 / 0.45));
+}
+:root[data-skin='military'] .fx-dot {
+  animation: fx-blink 1.2s steps(1) infinite;
+}
+/* Radar: range rings and a sweeping beam around the launch point. */
+:root[data-skin='military'] .fx-launch i:nth-child(1) {
+  background: repeating-radial-gradient(circle, transparent 0 34px, color-mix(in srgb, var(--fx-ink) 30%, transparent) 34px 35px);
+  -webkit-mask: radial-gradient(circle, #000 69%, transparent 70%);
+  mask: radial-gradient(circle, #000 69%, transparent 70%);
+}
+:root[data-skin='military'] .fx-launch i:nth-child(2) {
+  background: conic-gradient(from 0deg, transparent 0 270deg, color-mix(in srgb, var(--accent) 45%, transparent) 358deg, var(--fx-ink) 360deg);
+  -webkit-mask: radial-gradient(circle, #000 69%, transparent 70%);
+  mask: radial-gradient(circle, #000 69%, transparent 70%);
+  opacity: 0.55;
+  animation: fx-spin 4s linear infinite;
+}
+/* Lock-on brackets closing in on the predicted landing. */
+:root[data-fx='on'][data-skin='military'] .mk-impact::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  background:
+    linear-gradient(var(--impact) 0 0) left top / 12px 3px,
+    linear-gradient(var(--impact) 0 0) left top / 3px 12px,
+    linear-gradient(var(--impact) 0 0) right top / 12px 3px,
+    linear-gradient(var(--impact) 0 0) right top / 3px 12px,
+    linear-gradient(var(--impact) 0 0) left bottom / 12px 3px,
+    linear-gradient(var(--impact) 0 0) left bottom / 3px 12px,
+    linear-gradient(var(--impact) 0 0) right bottom / 12px 3px,
+    linear-gradient(var(--impact) 0 0) right bottom / 3px 12px;
+  background-repeat: no-repeat;
+  animation: fx-lockon 1.6s ease-in-out infinite;
+}
+@keyframes fx-lockon {
+  0% {
+    scale: 1.6;
+    opacity: 0;
+  }
+  45%,
+  100% {
+    scale: 1;
+    opacity: 1;
+  }
+}
+:root[data-skin='military'] .fx-flash {
+  color: var(--fg);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  border: 3px solid var(--fg);
+  box-shadow: inset 0 0 0 2px var(--bg);
+}
+:root[data-skin='military'] .fx-flash-lock {
+  color: var(--impact);
+  border-color: var(--impact);
+}
+
+/* --- Spy: hex grid, a laser scan sweeping the map, holographic rings, sonar ping --------- */
+
+:root[data-skin='spy'] {
+  --fx-ink: var(--accent);
+  --fx-dot: var(--ok);
+}
+:root[data-skin='spy'] .fx-1 {
+  background: var(--hex);
+  opacity: 0.8;
+}
+/* The laser: a bright line with a fading wake, top to bottom every few seconds. */
+:root[data-skin='spy'] .fx-2 {
+  inset: auto 0;
+  top: -30%;
+  height: 30%;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--accent) 22%, transparent));
+  border-bottom: 2px solid var(--accent);
+  box-shadow: 0 6px 14px -4px var(--accent);
+  animation: fx-scan 4.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes fx-scan {
+  0% {
+    translate: 0 0;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    translate: 0 433%;
+    opacity: 0;
+  }
+}
+/* Chamfered HUD corners. */
+:root[data-skin='spy'] .fx-3 {
+  inset: 26px 10px 10px;
+  background:
+    linear-gradient(135deg, transparent 0 calc(50% - 1px), var(--accent) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)) left top / 22px 22px,
+    linear-gradient(var(--accent) 0 0) 22px 0 / 40px 2px,
+    linear-gradient(var(--accent) 0 0) 0 22px / 2px 40px,
+    linear-gradient(135deg, transparent 0 calc(50% - 1px), var(--accent) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)) right bottom / 22px 22px,
+    linear-gradient(var(--accent) 0 0) right 22px bottom 0 / 40px 2px,
+    linear-gradient(var(--accent) 0 0) right 0 bottom 22px / 2px 40px;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 4px var(--accent));
+}
+:root[data-skin='spy'] .fx-status {
+  text-shadow: var(--glow);
+  border-left: 2px solid var(--accent);
+}
+:root[data-skin='spy'] .fx-dot {
+  box-shadow: 0 0 8px var(--ok);
+  animation: fx-blink 2s ease-in-out infinite;
+}
+/* Sonar ping: rings spreading out from the launch point. */
+:root[data-skin='spy'] .fx-launch i {
+  border: 2px solid var(--accent);
+  opacity: 0;
+  animation: fx-ping 3.6s ease-out infinite;
+}
+:root[data-skin='spy'] .fx-launch i:nth-child(2) {
+  animation-delay: 1.2s;
+}
+:root[data-skin='spy'] .fx-launch i:nth-child(3) {
+  animation-delay: 2.4s;
+}
+@keyframes fx-ping {
+  0% {
+    scale: 0.05;
+    opacity: 0.9;
+  }
+  100% {
+    scale: 1;
+    opacity: 0;
+  }
+}
+/* Holographic rings turning around the landing point and the target. */
+:root[data-fx='on'][data-skin='spy'] :is(.mk-impact, .mk-target)::before,
+:root[data-fx='on'][data-skin='spy'] .mk-impact::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+:root[data-fx='on'][data-skin='spy'] .mk-impact::before {
+  inset: -12px;
+  border: 2px dashed var(--impact);
+  animation: fx-spin 6s linear infinite;
+}
+:root[data-fx='on'][data-skin='spy'] .mk-impact::after {
+  inset: -22px;
+  border: 2px solid transparent;
+  border-top-color: var(--accent);
+  border-bottom-color: var(--accent);
+  animation: fx-spin 3s linear infinite reverse;
+}
+:root[data-fx='on'][data-skin='spy'] .mk-target::before {
+  inset: -6px;
+  border: 2px solid var(--target);
+  animation: fx-ping 2s ease-out infinite;
+}
+:root[data-skin='spy'] .fx-flash {
+  color: var(--accent);
+  text-shadow: var(--glow);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--bg) 80%, transparent) 15% 85%, transparent);
+  border-block: 1px solid var(--accent);
+  padding-inline: 36px;
+  animation: fx-holo 1.8s ease-out forwards;
+}
+/* Flickers on like a hologram, then fades. */
+@keyframes fx-holo {
+  0% {
+    opacity: 0;
+    scale: 1 0.1;
+  }
+  6% {
+    opacity: 1;
+    scale: 1 1;
+  }
+  9% {
+    opacity: 0.2;
+  }
+  12% {
+    opacity: 1;
+  }
+  15% {
+    opacity: 0.4;
+    translate: -48% -50%;
+  }
+  18% {
+    opacity: 1;
+    translate: -50% -50%;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* --- 1980s military: rolling CRT bar and flicker (night), LCD pixels (day), PPI radar ---- */
+
+:root[data-skin='retro'] {
+  --fx-ink: var(--fg);
+}
+/* Night: a brighter band rolling down the tube, a faint flicker, and a curved-glass vignette. */
+:root[data-skin='retro'][data-theme='dark'] .fx-1 {
+  inset: auto 0;
+  top: -25%;
+  height: 25%;
+  background: linear-gradient(to bottom, transparent, rgb(65 255 112 / 0.08) 50%, transparent);
+  animation: fx-roll 7s linear infinite;
+}
+@keyframes fx-roll {
+  to {
+    translate: 0 500%;
+  }
+}
+:root[data-skin='retro'][data-theme='dark'] .fx-2 {
+  background: rgb(65 255 112 / 0.03);
+  animation: fx-flicker 0.15s steps(2) infinite;
+}
+@keyframes fx-flicker {
+  50% {
+    opacity: 0.4;
+  }
+}
+:root[data-skin='retro'][data-theme='dark'] .fx-3 {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgb(255 255 255 / 0.05), transparent 40%),
+    radial-gradient(ellipse at center, transparent 60%, rgb(0 0 0 / 0.55));
+}
+/* Day: the LCD's pixel grid and a shadow where the glass meets the case. */
+:root[data-skin='retro']:not([data-theme='dark']) .fx-1 {
+  background:
+    linear-gradient(rgb(0 0 0 / 0.07) 1px, transparent 1px) 0 0 / 3px 3px,
+    linear-gradient(90deg, rgb(0 0 0 / 0.07) 1px, transparent 1px) 0 0 / 3px 3px;
+}
+:root[data-skin='retro']:not([data-theme='dark']) .fx-3 {
+  box-shadow: inset 4px 4px 10px rgb(0 0 0 / 0.3);
+}
+:root[data-skin='retro'] .fx-status {
+  font-size: 15px;
+  font-weight: 400;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+:root[data-skin='retro'] .fx-dot {
+  display: none;
+}
+:root[data-skin='retro'] .fx-cursor {
+  animation: fx-blink 1s steps(1) infinite;
+}
+/* PPI radar scope: range rings, a cross, and a beam with phosphor afterglow. */
+:root[data-skin='retro'] .fx-launch i:nth-child(1) {
+  background:
+    linear-gradient(color-mix(in srgb, var(--fx-ink) 35%, transparent) 0 0) center / 1px 100% no-repeat,
+    linear-gradient(color-mix(in srgb, var(--fx-ink) 35%, transparent) 0 0) center / 100% 1px no-repeat,
+    repeating-radial-gradient(circle, transparent 0 34px, color-mix(in srgb, var(--fx-ink) 40%, transparent) 34px 35px);
+  -webkit-mask: radial-gradient(circle, #000 69%, transparent 70%);
+  mask: radial-gradient(circle, #000 69%, transparent 70%);
+}
+:root[data-skin='retro'] .fx-launch i:nth-child(2) {
+  background: conic-gradient(from 0deg, transparent 0 200deg, color-mix(in srgb, var(--fx-ink) 40%, transparent) 356deg, var(--fx-ink) 360deg);
+  -webkit-mask: radial-gradient(circle, #000 69%, transparent 70%);
+  mask: radial-gradient(circle, #000 69%, transparent 70%);
+  opacity: 0.6;
+  animation: fx-spin 3s linear infinite;
+}
+/* The LCD can only redraw in steps. */
+:root[data-skin='retro']:not([data-theme='dark']) .fx-launch i:nth-child(2) {
+  animation-timing-function: steps(24);
+  opacity: 0.45;
+}
+:root[data-fx='on'][data-skin='retro'] .mk-impact::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border: 2px solid var(--impact);
+  animation: fx-blink 0.8s steps(1) infinite;
+}
+:root[data-skin='retro'] .fx-flash {
+  font-weight: 400;
+  font-size: 34px;
+  color: var(--bg);
+  background: var(--fg);
+  text-shadow: none;
+  animation: fx-flash-blink 1.8s steps(1) forwards;
+}
+@keyframes fx-flash-blink {
+  0%,
+  20%,
+  40% {
+    opacity: 1;
+  }
+  10%,
+  30% {
+    opacity: 0;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* --- Reduce motion: keep the look, drop the movement --------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .map-fx *,
+  .fx-launch i,
+  .mk-impact::before,
+  .mk-impact::after,
+  .mk-target::before {
+    animation: none !important;
+  }
+  .fx-launch i:nth-child(n + 2),
+  :root[data-skin='spy'] .fx-2,
+  :root[data-skin='retro'][data-theme='dark'] :is(.fx-1, .fx-2) {
+    display: none;
+  }
+  .fx-flash {
+    animation: fx-fade 1.8s forwards !important;
+  }
+  @keyframes fx-fade {
+    0%,
+    80% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}
+
+/* --- Camera view per skin ------------------------------------------------------------
+ * --cam-* tokens drive the canvas overlay (path, rings, labels, reticle, glow); the picture
+ * itself gets a filter (thermal, night vision, hologram, phosphor, LCD). The HUD frame and
+ * labels are styling; their animations follow the Effects switch like the rest.
+ */
+
+.cam-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.cam-hud > i {
+  position: absolute;
+  display: block;
+}
+.cam-fx {
+  inset: 0;
+}
+/* The HUD sits between the instruction bars at the top and the controls at the bottom. */
+.cam-frame {
+  inset: calc(96px + env(safe-area-inset-top)) 14px calc(150px + env(safe-area-inset-bottom));
+}
+.cam-ring {
+  display: none !important;
+}
+.cam-label {
+  position: absolute;
+  top: calc(104px + env(safe-area-inset-top));
+  padding: 2px 8px;
+  font: 700 13px/1.3 var(--font-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cam-text);
+}
+.cam-label-l {
+  left: 24px;
+}
+.cam-label-r {
+  right: 24px;
+}
+:root:not([data-skin='plain']) .camera-view {
+  color: var(--cam-text);
+}
+:root:not([data-skin='plain']) :is(.camera-top, .camera-bottom) {
+  background: color-mix(in srgb, var(--cam-bar) 78%, transparent);
+  font-family: var(--font-ui);
+}
+:root:not([data-skin='plain']) .camera-top {
+  border-bottom: 1px solid var(--cam-path);
+}
+:root:not([data-skin='plain']) .camera-bottom {
+  border-top: 1px solid var(--cam-path);
+}
+
+/* Modern military: thermal "white hot" by day, green night vision after dark. */
+:root[data-skin='military'] {
+  --cam-path: #00e5ff;
+  --cam-ring: #ffb000;
+  --cam-impact: #ff3b30;
+  --cam-target: #ff4fd8;
+  --cam-halo: rgba(0, 0, 0, 0.75);
+  --cam-text: #ffffff;
+  --cam-label-bg: rgba(0, 0, 0, 0.7);
+  --cam-label-edge: #ffffff;
+  --cam-font: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --cam-reticle: mil;
+  --cam-glow: 0;
+  --cam-bar: #0c0e09;
+}
+:root[data-skin='military'][data-theme='dark'] {
+  --cam-path: #ffffff;
+  --cam-text: #c8ff9c;
+  --cam-label-edge: #c8ff9c;
+}
+:root[data-skin='military'] .camera-view video {
+  filter: grayscale(1) contrast(1.5) brightness(1.1);
+}
+:root[data-skin='military'][data-theme='dark'] .camera-view video {
+  filter: grayscale(1) brightness(1.4) contrast(1.25) sepia(1) hue-rotate(55deg) saturate(3.5);
+}
+:root[data-skin='military'] .cam-frame {
+  background:
+    linear-gradient(var(--cam-text) 0 0) left top / 34px 3px,
+    linear-gradient(var(--cam-text) 0 0) left top / 3px 34px,
+    linear-gradient(var(--cam-text) 0 0) right top / 34px 3px,
+    linear-gradient(var(--cam-text) 0 0) right top / 3px 34px,
+    linear-gradient(var(--cam-text) 0 0) left bottom / 34px 3px,
+    linear-gradient(var(--cam-text) 0 0) left bottom / 3px 34px,
+    linear-gradient(var(--cam-text) 0 0) right bottom / 34px 3px,
+    linear-gradient(var(--cam-text) 0 0) right bottom / 3px 34px;
+  background-repeat: no-repeat;
+}
+:root[data-skin='military'][data-theme='dark'] .cam-fx {
+  background: radial-gradient(circle at center, transparent 45%, rgb(0 0 0 / 0.75) 75%);
+}
+:root[data-skin='military'] .cam-label-l {
+  color: #ff3b30;
+}
+:root[data-fx='on'][data-skin='military'] .cam-label-l {
+  animation: fx-blink 1.2s steps(1) infinite;
+}
+
+/* Spy: a holographic AR display — cool-tinted picture, glowing cyan symbols. */
+:root[data-skin='spy'] {
+  --cam-path: #31e1f7;
+  --cam-ring: #ffb547;
+  --cam-impact: #ff4778;
+  --cam-target: #c48bff;
+  --cam-halo: rgba(2, 7, 15, 0.55);
+  --cam-text: #e3fbff;
+  --cam-label-bg: rgba(2, 7, 15, 0.6);
+  --cam-label-edge: #31e1f7;
+  --cam-font: 'Orbitron', 'Rajdhani', sans-serif;
+  --cam-reticle: ring;
+  --cam-glow: 12;
+  --cam-bar: #02070f;
+}
+/* Greyscale first, so every scene takes the same cool tint. */
+:root[data-skin='spy'] .camera-view video {
+  filter: grayscale(1) sepia(0.35) hue-rotate(165deg) saturate(1.6) brightness(1.05) contrast(1.1);
+}
+:root[data-skin='spy'][data-theme='dark'] .camera-view video {
+  filter: grayscale(1) contrast(1.25) brightness(0.75) sepia(0.7) hue-rotate(160deg) saturate(2.2);
+}
+:root[data-skin='spy'] .cam-fx {
+  background: var(--hex);
+  opacity: 0.6;
+}
+:root[data-skin='spy'] .cam-frame {
+  background:
+    linear-gradient(135deg, transparent 0 calc(50% - 1px), #31e1f7 calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)) left top / 26px 26px,
+    linear-gradient(#31e1f7 0 0) 26px 0 / 60px 2px,
+    linear-gradient(#31e1f7 0 0) 0 26px / 2px 60px,
+    linear-gradient(135deg, transparent 0 calc(50% - 1px), #31e1f7 calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)) right bottom / 26px 26px,
+    linear-gradient(#31e1f7 0 0) right 26px bottom 0 / 60px 2px,
+    linear-gradient(#31e1f7 0 0) right 0 bottom 26px / 2px 60px;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 6px #31e1f7);
+}
+/* A dashed ring turning slowly round the centre mark. */
+:root[data-skin='spy'] .cam-ring {
+  display: block !important;
+  left: 50%;
+  top: 50%;
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border-radius: 50%;
+  border: 2px dashed rgb(49 225 247 / 0.7);
+  box-shadow: 0 0 12px rgb(49 225 247 / 0.4);
+}
+:root[data-fx='on'][data-skin='spy'] .cam-ring {
+  animation: fx-spin 12s linear infinite;
+}
+:root[data-skin='spy'] .cam-label {
+  text-shadow: 0 0 8px #31e1f7;
+  border-bottom: 1px solid #31e1f7;
+}
+/* The laser scan, across the picture. */
+:root[data-fx='on'][data-skin='spy'] .cam-hud::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -30%;
+  height: 30%;
+  background: linear-gradient(to bottom, transparent, rgb(49 225 247 / 0.18));
+  border-bottom: 2px solid #31e1f7;
+  box-shadow: 0 6px 16px -4px #31e1f7;
+  animation: fx-scan 4.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 1980s military: a green phosphor monitor by night, a pocket LCD TV by day. */
+:root[data-skin='retro'] {
+  --cam-path: #121a0e;
+  --cam-ring: #3c4a30;
+  --cam-impact: #a51d1d;
+  --cam-target: #5b1f7a;
+  --cam-halo: rgba(199, 209, 176, 0.85);
+  --cam-text: #121a0e;
+  --cam-label-bg: rgba(199, 209, 176, 0.9);
+  --cam-label-edge: #121a0e;
+  --cam-font: 'VT323', 'Courier New', monospace;
+  --cam-reticle: box;
+  --cam-glow: 0;
+  --cam-bar: #c7d1b0;
+}
+:root[data-skin='retro'][data-theme='dark'] {
+  --cam-path: #d9ffe3;
+  --cam-ring: #41ff70;
+  --cam-impact: #ffb000;
+  --cam-target: #00e5ff;
+  --cam-halo: rgba(2, 13, 4, 0.7);
+  --cam-text: #41ff70;
+  --cam-label-bg: rgba(2, 13, 4, 0.8);
+  --cam-label-edge: #41ff70;
+  --cam-glow: 6;
+  --cam-bar: #020d04;
+}
+:root[data-skin='retro'] .camera-view video {
+  filter: grayscale(1) contrast(1.5) brightness(1.05) sepia(0.45) hue-rotate(40deg) saturate(0.8);
+}
+:root[data-skin='retro'][data-theme='dark'] .camera-view video {
+  filter: grayscale(1) contrast(1.6) brightness(0.95) sepia(1) hue-rotate(70deg) saturate(4);
+}
+:root[data-skin='retro'] .cam-label {
+  font-weight: 400;
+  font-size: 20px;
+  background: var(--cam-label-bg);
+}
+/* Night: scan lines, a vignette and a rolling bar. Day: the LCD's pixel grid. */
+:root[data-skin='retro'][data-theme='dark'] .cam-fx {
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / 0.35) 2px 3px),
+    radial-gradient(ellipse at center, transparent 50%, rgb(0 0 0 / 0.6));
+}
+:root[data-fx='on'][data-skin='retro'][data-theme='dark'] .cam-hud::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -25%;
+  height: 25%;
+  background: linear-gradient(to bottom, transparent, rgb(65 255 112 / 0.1) 50%, transparent);
+  animation: fx-roll 6s linear infinite;
+}
+:root[data-skin='retro']:not([data-theme='dark']) .cam-fx {
+  background:
+    linear-gradient(rgb(0 0 0 / 0.12) 1px, transparent 1px) 0 0 / 3px 3px,
+    linear-gradient(90deg, rgb(0 0 0 / 0.12) 1px, transparent 1px) 0 0 / 3px 3px;
+}
+:root[data-fx='on'][data-skin='retro'] .cam-label-l {
+  animation: fx-blink 1s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cam-hud *,
+  .cam-hud::after {
+    animation: none !important;
+  }
+  .cam-hud::after {
+    display: none;
+  }
+}

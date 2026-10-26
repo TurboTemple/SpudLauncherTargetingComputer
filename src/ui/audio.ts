@@ -37,18 +37,22 @@ export class AimingTone {
     if (!this.timer && this.ctx) this.timer = setInterval(() => this.tick(), 25);
   }
 
-  /** A short beep (countdowns). */
-  beep(freq = 880, seconds = 0.12): void {
+  /** A short beep (countdowns), optionally delayed and sliding to a second pitch (skin sounds). */
+  beep(freq = 880, seconds = 0.12, opts: { type?: OscillatorType; delay?: number; to?: number; volume?: number } = {}): void {
     const ctx = this.ctx;
     if (!ctx) return;
+    const t0 = ctx.currentTime + (opts.delay ?? 0);
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.setTargetAtTime(0, ctx.currentTime + seconds, 0.02);
+    osc.type = opts.type ?? 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    if (opts.to) osc.frequency.exponentialRampToValueAtTime(opts.to, t0 + seconds);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.setValueAtTime(opts.volume ?? 0.3, t0);
+    gain.gain.setTargetAtTime(0, t0 + seconds, 0.02);
     osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + seconds + 0.2);
+    osc.start(t0);
+    osc.stop(t0 + seconds + 0.2);
   }
 
   stop(): void {

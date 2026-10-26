@@ -76,6 +76,16 @@ export function MapView() {
     const ringLayer = L.layerGroup();
     const footprintLayer = L.polygon([], { className: 'footprint', interactive: false });
     const obstacleMarker = L.marker([0, 0], { icon: divIcon('mk-obstacle', 26), interactive: false });
+    // Skin effects (radar sweep, sonar ping) centred on the launch point, under the shot layers.
+    map.createPane('fx');
+    map.getPane('fx')!.style.zIndex = '350';
+    map.getPane('fx')!.style.pointerEvents = 'none';
+    const launchFx = L.marker([0, 0], {
+      icon: L.divIcon({ className: 'fx-launch', iconSize: [280, 280], iconAnchor: [140, 140], html: '<i></i><i></i><i></i>' }),
+      pane: 'fx',
+      interactive: false,
+      keyboard: false,
+    });
     let eaAttributed = false;
 
     const show = (layer: L.Layer, on: boolean) => {
@@ -208,6 +218,12 @@ export function MapView() {
           accuracy.setLatLng([f.lat, f.lon]).setRadius(f.accuracy);
           gpsDot.setLatLng([f.lat, f.lon]);
         }
+      }),
+      effect(() => {
+        const l = launch.value;
+        const s = settings.value;
+        show(launchFx, !!l && s.effects && s.skin !== 'plain');
+        if (l) launchFx.setLatLng(ll(l));
       }),
       effect(() => {
         const l = launch.value;

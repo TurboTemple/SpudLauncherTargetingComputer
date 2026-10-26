@@ -5,10 +5,11 @@
 
 import '@fontsource/barlow-condensed/latin-600.css';
 import '@fontsource/barlow-condensed/latin-700.css';
-import '@fontsource/ibm-plex-mono/latin-400.css';
-import '@fontsource/ibm-plex-mono/latin-600.css';
-import '@fontsource/courier-prime/latin-400.css';
-import '@fontsource/courier-prime/latin-700.css';
+import '@fontsource/orbitron/latin-500.css';
+import '@fontsource/orbitron/latin-700.css';
+import '@fontsource/rajdhani/latin-500.css';
+import '@fontsource/rajdhani/latin-600.css';
+import '@fontsource/rajdhani/latin-700.css';
 import '@fontsource/vt323/latin-400.css';
 import dseg7 from 'dseg/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2?url';
 

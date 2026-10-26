@@ -18,10 +18,12 @@ export interface Skin {
   voice: VoiceStyle;
   /** Show angles in NATO mils (6400 to a circle) as well as degrees. */
   mils: boolean;
+  /** Words flashed over the map on lock, firing and landing, and the map's status line. */
+  fx: { lock: string; fire: string; land: string; status: string } | null;
 }
 
 export const SKINS: readonly Skin[] = [
-  { id: 'plain', name: 'Plain', blurb: 'High contrast and simple.', tag: null, voice: 'plain', mils: false },
+  { id: 'plain', name: 'Plain', blurb: 'High contrast and simple.', tag: null, voice: 'plain', mils: false, fx: null },
   {
     id: 'military',
     name: 'Modern military',
@@ -29,14 +31,16 @@ export const SKINS: readonly Skin[] = [
     tag: 'Unclassified',
     voice: 'military',
     mils: true,
+    fx: { lock: 'Target locked', fire: 'Shot out', land: 'Splash', status: 'Live' },
   },
   {
     id: 'spy',
     name: 'Spy',
-    blurb: 'Light: a classified dossier. Dark: an agency display.',
+    blurb: 'Movie spy-gadget tech. Light: frosted glass and blue light. Dark: a glowing holographic display.',
     tag: 'Top secret // eyes only',
     voice: 'spy',
     mils: false,
+    fx: { lock: 'Lock acquired', fire: 'Package away', land: 'Delivered', status: 'Uplink' },
   },
   {
     id: 'retro',
@@ -45,6 +49,7 @@ export const SKINS: readonly Skin[] = [
     tag: 'NATO restricted',
     voice: 'military',
     mils: true,
+    fx: { lock: 'Target locked', fire: 'Round away', land: 'Impact', status: 'Radar active' },
   },
 ];
 

@@ -15,11 +15,112 @@ import { cameraPose, lockAim } from '../state/sensors';
 import { cameraOpen, launch, liveAim, lockedAim, prediction, settings, target, targetSolution, zone } from '../state/store';
 import { fmt } from './format';
 
+/** How the overlay is drawn, from the skin's --cam-* tokens (skins.css). */
+interface CamStyle {
+  path: string;
+  ring: string;
+  impact: string;
+  target: string;
+  halo: string;
+  text: string;
+  labelBg: string;
+  labelEdge: string;
+  font: string;
+  reticle: string;
+  /** Glow around lines, px (0: none). */
+  glow: number;
+}
+
+function readCamStyle(): CamStyle {
+  const cs = getComputedStyle(document.documentElement);
+  const v = (name: string, d: string) => cs.getPropertyValue(name).trim() || d;
+  return {
+    path: v('--cam-path', '#1a6dff'),
+    ring: v('--cam-ring', '#ff8c00'),
+    impact: v('--cam-impact', '#e00000'),
+    target: v('--cam-target', '#d58cff'),
+    halo: v('--cam-halo', 'rgba(255,255,255,0.9)'),
+    text: v('--cam-text', '#fff'),
+    labelBg: v('--cam-label-bg', 'rgba(0,0,0,0.75)'),
+    labelEdge: v('--cam-label-edge', 'transparent'),
+    font: v('--cam-font', 'system-ui, sans-serif'),
+    reticle: v('--cam-reticle', 'cross'),
+    glow: parseFloat(v('--cam-glow', '0')) || 0,
+  };
+}
+
+/** HUD corner labels per skin and theme. */
+function hudLabels(skin: string, dark: boolean): [string, string] | null {
+  if (skin === 'military') return ['● REC', dark ? 'NV' : 'WHT HOT'];
+  if (skin === 'spy') return ['AR link', 'Scanning'];
+  if (skin === 'retro') return ['CAM 1 ● REC', dark ? 'CH-1' : 'LCD-TV'];
+  return null;
+}
+
+/** The centre mark: a plain cross, a mil-scale sight, a ring, or a boxed cross. */
+function reticle(ctx: CanvasRenderingContext2D, x: number, y: number, dpr: number, st: CamStyle): void {
+  const k = dpr;
+  ctx.save();
+  ctx.strokeStyle = st.text;
+  ctx.fillStyle = st.text;
+  ctx.lineWidth = 1.5 * k;
+  ctx.shadowBlur = st.glow ? st.glow * k : 0;
+  ctx.shadowColor = st.text;
+  ctx.beginPath();
+  if (st.reticle === 'mil') {
+    // Gapped crosshair with a tick every 15 px, like the mil scale in a sight.
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      ctx.moveTo(x + dx * 12 * k, y + dy * 12 * k);
+      ctx.lineTo(x + dx * 72 * k, y + dy * 72 * k);
+      for (let t = 27; t <= 72; t += 15) {
+        ctx.moveTo(x + dx * t * k - dy * 4 * k, y + dy * t * k - dx * 4 * k);
+        ctx.lineTo(x + dx * t * k + dy * 4 * k, y + dy * t * k + dx * 4 * k);
+      }
+    }
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y, 2 * k, 0, 2 * Math.PI);
+    ctx.fill();
+  } else if (st.reticle === 'ring') {
+    ctx.arc(x, y, 26 * k, 0, 2 * Math.PI);
+    for (let a = 0; a < 4; a++) {
+      const c = Math.cos((a * Math.PI) / 2);
+      const s = Math.sin((a * Math.PI) / 2);
+      ctx.moveTo(x + c * 30 * k, y + s * 30 * k);
+      ctx.lineTo(x + c * 44 * k, y + s * 44 * k);
+    }
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y, 2.5 * k, 0, 2 * Math.PI);
+    ctx.fill();
+  } else if (st.reticle === 'box') {
+    ctx.lineWidth = 2 * k;
+    ctx.moveTo(x - 10 * k, y);
+    ctx.lineTo(x + 10 * k, y);
+    ctx.moveTo(x, y - 10 * k);
+    ctx.lineTo(x, y + 10 * k);
+    for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as const) {
+      ctx.moveTo(x + sx * 28 * k, y + sy * 18 * k);
+      ctx.lineTo(x + sx * 28 * k, y + sy * 28 * k);
+      ctx.lineTo(x + sx * 18 * k, y + sy * 28 * k);
+    }
+    ctx.stroke();
+  } else {
+    ctx.moveTo(x - 10 * k, y);
+    ctx.lineTo(x + 10 * k, y);
+    ctx.moveTo(x, y - 10 * k);
+    ctx.lineTo(x, y + 10 * k);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 export function CameraView() {
   const video = useRef<HTMLVideoElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
   const locked = lockedAim.value;
+  const hud = hudLabels(settings.value.skin, settings.value.theme === 'dark');
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -35,8 +136,16 @@ export function CameraView() {
       .catch((e: Error) => setError(e.message || 'Camera unavailable'));
     if (!navigator.mediaDevices) setError('Camera unavailable (needs HTTPS)');
 
+    let style = readCamStyle();
+    let styleKey = '';
     const draw = () => {
       raf = requestAnimationFrame(draw);
+      const key = `${settings.peek().skin}/${settings.peek().theme}`;
+      if (key !== styleKey) {
+        style = readCamStyle();
+        styleKey = key;
+      }
+      const st = style;
       const c = canvas.current;
       const v = video.current;
       if (!c || !v) return;
@@ -80,21 +189,32 @@ export function CameraView() {
         }
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
-        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+        ctx.strokeStyle = st.halo;
         ctx.lineWidth = width + 4 * dpr;
         ctx.stroke();
+        glow(color);
         ctx.strokeStyle = color;
         ctx.lineWidth = width;
         ctx.stroke();
+        glow(null);
+      };
+      const glow = (color: string | null) => {
+        ctx.shadowBlur = color && st.glow ? st.glow * dpr : 0;
+        ctx.shadowColor = color ?? 'transparent';
       };
       const label = (text: string, u: number, vv: number) => {
-        ctx.font = `700 ${16 * dpr}px system-ui, sans-serif`;
-        const w = ctx.measureText(text).width + 12 * dpr;
-        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.font = `700 ${16 * dpr}px ${st.font}`;
+        const w = ctx.measureText(text).width + 14 * dpr;
+        ctx.fillStyle = st.labelBg;
         ctx.fillRect(u - w / 2, vv - 30 * dpr, w, 24 * dpr);
-        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = st.labelEdge;
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.strokeRect(u - w / 2, vv - 30 * dpr, w, 24 * dpr);
+        ctx.fillStyle = st.text;
         ctx.textAlign = 'center';
+        glow(st.text);
         ctx.fillText(text, u, vv - 12 * dpr);
+        glow(null);
       };
 
       // Horizon, for a sense of level.
@@ -107,22 +227,24 @@ export function CameraView() {
       const z = zone.peek();
       if (pr && z) {
         const ring = ellipsePolygon(z.mean, z.ellipses[1]!).map(([x, y]) => P([x, y, pr.impact[2]]));
-        line([...ring, ring[0]!], '#ff8c00', 3 * dpr);
+        line([...ring, ring[0]!], st.ring, 3 * dpr);
       }
       if (pr) {
         const path: (ReturnType<typeof P> | null)[] = [];
         for (let i = 0; i < pr.path.length; i += 3) path.push(P([pr.path[i]!, pr.path[i + 1]!, pr.path[i + 2]!]));
-        line(path, '#1a6dff', 4 * dpr);
+        line(path, st.path, 4 * dpr);
         const hit = P(pr.impact);
         if (hit && hit.u > 0 && hit.u < W && hit.v > 0 && hit.v < H) {
           ctx.beginPath();
           ctx.arc(hit.u, hit.v, 12 * dpr, 0, 2 * Math.PI);
           ctx.lineWidth = 5 * dpr;
-          ctx.strokeStyle = '#fff';
+          ctx.strokeStyle = st.halo;
           ctx.stroke();
           ctx.lineWidth = 3 * dpr;
-          ctx.strokeStyle = '#e00000';
+          ctx.strokeStyle = st.impact;
+          glow(st.impact);
           ctx.stroke();
+          glow(null);
           label(`${fmt(pr.range, 0)} m`, hit.u, hit.v - 12 * dpr);
         } else {
           // Off screen: an arrow at the edge pointing the way to turn.
@@ -141,8 +263,8 @@ export function CameraView() {
           ctx.lineTo(-12 * dpr, -14 * dpr);
           ctx.lineTo(-12 * dpr, 14 * dpr);
           ctx.closePath();
-          ctx.fillStyle = '#e00000';
-          ctx.strokeStyle = '#fff';
+          ctx.fillStyle = st.impact;
+          ctx.strokeStyle = st.halo;
           ctx.lineWidth = 3 * dpr;
           ctx.fill();
           ctx.stroke();
@@ -158,19 +280,13 @@ export function CameraView() {
           ctx.beginPath();
           ctx.arc(q.u, q.v, 10 * dpr, 0, 2 * Math.PI);
           ctx.lineWidth = 4 * dpr;
-          ctx.strokeStyle = '#d58cff';
+          ctx.strokeStyle = st.target;
+          glow(st.target);
           ctx.stroke();
+          glow(null);
         }
       }
-      // Centre cross.
-      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-      ctx.lineWidth = 1.5 * dpr;
-      ctx.beginPath();
-      ctx.moveTo(W / 2 - 10 * dpr, H / 2);
-      ctx.lineTo(W / 2 + 10 * dpr, H / 2);
-      ctx.moveTo(W / 2, H / 2 - 10 * dpr);
-      ctx.lineTo(W / 2, H / 2 + 10 * dpr);
-      ctx.stroke();
+      reticle(ctx, W / 2, H / 2, dpr, st);
     };
     draw();
     return () => {
@@ -184,6 +300,15 @@ export function CameraView() {
     <div class="camera-view">
       <video ref={video} autoplay playsInline muted />
       <canvas ref={canvas} />
+      {hud && (
+        <div class="cam-hud" aria-hidden="true">
+          <i class="cam-fx" />
+          <i class="cam-frame" />
+          <i class="cam-ring" />
+          <span class="cam-label cam-label-l">{hud[0]}</span>
+          <span class="cam-label cam-label-r">{hud[1]}</span>
+        </div>
+      )}
       <div class="camera-top">
         {locked ? (
           <span>

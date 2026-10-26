@@ -1,6 +1,6 @@
 /** User actions and startup: profiles, sessions, weather, shot recording, calibration, wizards, export. */
 
-import { effect } from '@preact/signals';
+import { batch, effect } from '@preact/signals';
 import { circularMean, toDeg, toRad, wrapPi } from '../core/angles';
 import { airDensity, DEFAULT_SHEAR_EXPONENT, dragFactor, KELVIN, referenceWind, windVector } from '../core/atmosphere';
 import type { CalShot } from '../core/calibration';
@@ -303,13 +303,17 @@ export function shotDetected(at: number, magnitude: number, preShot: AimReading 
     if (open.firedAt === null && open.draft.flightTimeS === undefined) markFired(at, true);
     return;
   }
-  if (preShot) lockedAim.value = preShot;
-  const err = beginRecord();
+  // One update, so effects see a fired shot rather than a lock and then a shot.
+  const err = batch(() => {
+    if (preShot) lockedAim.value = preShot;
+    const e = beginRecord();
+    if (!e) markFired(at, true);
+    return e;
+  });
   if (err) {
     toast(`Shot detected but not recorded: ${err}`, 'warn');
     return;
   }
-  markFired(at, true);
   toast(`Shot detected (${magnitude.toFixed(0)} m/s² jolt). Tap Landed when it lands.`);
 }
 

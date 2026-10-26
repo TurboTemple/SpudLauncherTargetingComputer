@@ -140,6 +140,8 @@ export interface AppSettings {
   skin: SkinId;
   /** Tint the map and satellite tiles to match the skin. */
   tintMap: boolean;
+  /** Skin effects: animated map overlays, flashes and sounds (never on the plain skin). */
+  effects: boolean;
   satelliteProvider: SatelliteProviderId;
   /** Provider API keys: kept on this phone only, never exported. */
   maptilerKey: string;

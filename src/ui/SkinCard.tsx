@@ -47,6 +47,14 @@ export function SkinCard() {
         onChange={(v) => updateSettings({ tintMap: v })}
         hint="(turn off for natural colours, for example when marking impacts on satellite imagery)"
       />
+      {s.skin !== 'plain' && (
+        <Toggle
+          label="Effects"
+          checked={s.effects}
+          onChange={(v) => updateSettings({ effects: v })}
+          hint="(scan lines, radar and flashes on the map, and lock-on sounds when audio cues are on; animations stop if the phone is set to reduce motion)"
+        />
+      )}
     </Card>
   );
 }

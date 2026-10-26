@@ -43,6 +43,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'light',
   skin: 'plain',
   tintMap: true,
+  effects: true,
   satelliteProvider: 'none',
   maptilerKey: '',
   esriKey: '',

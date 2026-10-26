@@ -4,6 +4,7 @@ import { AimPanel } from './AimPanel';
 import { Banners, SafetyCard } from './Banners';
 import { CameraView } from './CameraView';
 import { FlightBar } from './FlightBar';
+import { FxFlash, MapFx } from './Fx';
 import { MapView } from './MapView';
 import { SetupPanel } from './SetupPanel';
 import { skinById } from './skins';
@@ -23,21 +24,22 @@ const HINT: Record<string, string> = {
 export function App() {
   const t = tab.value;
   const panel = useRef<HTMLElement>(null);
-  const { theme, skin, tintMap } = settings.value;
+  const { theme, skin, tintMap, effects } = settings.value;
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.theme = theme;
     root.dataset.skin = skin;
     root.dataset.tint = tintMap ? 'on' : 'off';
+    root.dataset.fx = effects && skin !== 'plain' ? 'on' : 'off';
     // Remembered here too so the next start shows the right skin before settings load.
     try {
-      localStorage.setItem('spud-look', JSON.stringify({ theme, skin, tint: root.dataset.tint }));
+      localStorage.setItem('spud-look', JSON.stringify({ theme, skin, tint: root.dataset.tint, fx: root.dataset.fx }));
     } catch {
       /* private mode: a plain first frame is fine */
     }
     // Status bar and task switcher colour follow the skin.
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', getComputedStyle(root).getPropertyValue('--bg').trim() || '#000000');
-  }, [theme, skin, tintMap]);
+  }, [theme, skin, tintMap, effects]);
   // One scroll container serves every screen, so start each screen at the top.
   useEffect(() => {
     if (panel.current) panel.current.scrollTop = 0;
@@ -63,9 +65,11 @@ export function App() {
     <div class={`app tab-${t}`}>
       <div class={`map-wrap${tag ? ' has-tag' : ''}`} hidden={t === 'setup'}>
         <MapView />
+        <MapFx />
+        <FxFlash />
         {tag && (
           <div class="skin-tag" aria-hidden="true">
-            {tag.split(' // ').map((part, i) => (i ? <span class="skin-tag-rest"> // {part}</span> : part))}
+            {tag}
           </div>
         )}
         {action && <div class="map-hint">{HINT[action]}</div>}

@@ -225,109 +225,109 @@
 }
 
 [data-skin='spy'] {
-  --map-filter: grayscale(1) sepia(0.55) contrast(0.95) brightness(1.02);
-  --map-bg: #e3d7b5;
+  --map-filter: grayscale(1) sepia(0.25) hue-rotate(170deg) saturate(1.6) brightness(1.05) contrast(0.95);
+  --map-bg: #e3ecf2;
   --map-ink: #000000;
   --map-halo: #ffffff;
-  --map-ctl-bg: #f8f2e1;
-  --map-ctl-fg: #1b1712;
-  --keep-clear: #b3161f;
-  --mark: #23602a;
+  --map-ctl-bg: #ffffff;
+  --map-ctl-fg: #07131d;
+  --keep-clear: #d0103a;
+  --mark: #00703c;
   --gps: #0a84ff;
-  --trees: #5a6b3a;
+  --trees: #5f8f8a;
   --warn-ink: #000000;
-  --bg: #efe6cc;
-  --fg: #1b1712;
-  --muted: #4e4536;
-  --card: #f8f2e1;
-  --line: #3a3227;
-  --accent: #1f3a7a;
-  --accent-fg: #f8f2e1;
-  --ok: #23602a;
-  --ok-bg: #d5e6c4;
+  --bg: #eef3f7;
+  --fg: #07131d;
+  --muted: #3b5163;
+  --card: #ffffff;
+  --line: #2a6f8f;
+  --accent: #005fcc;
+  --accent-fg: #ffffff;
+  --ok: #00703c;
+  --ok-bg: #d4f5e6;
   --warn: #5c3d00;
-  --warn-bg: #f2c14e;
+  --warn-bg: #ffc04d;
   --bad: #ffffff;
-  --bad-bg: #a8161f;
-  --impact: #b3161f;
-  --e50: #b3161f;
-  --e90: #c9650e;
-  --track: #1f3a7a;
-  --target: #6d2a8c;
-  --ground: #c2ad7f;
-  --series-1: #2368b8;
-  --series-2: #c0531a;
-  --series-3: #0b8a6d;
-  --grid: #d6c9a6;
-  --font-ui: 'Courier Prime', 'Courier New', monospace;
-  --font-label: 'Courier Prime', 'Courier New', monospace;
-  --font-data: 'Courier Prime', 'Courier New', monospace;
-  --font-size: 17px;
-  --data-scale: 0.95;
-  --readout-min: 6.6rem;
+  --bad-bg: #d0103a;
+  --impact: #d0103a;
+  --e50: #d0103a;
+  --e90: #e86a00;
+  --track: #005fcc;
+  --target: #7b2cbf;
+  --ground: #c9d6df;
+  --series-1: #1f6fd1;
+  --series-2: #e0602a;
+  --series-3: #0f9474;
+  --grid: #d5e0e8;
+  --font-ui: 'Rajdhani', 'Arial Narrow', sans-serif;
+  --font-label: 'Orbitron', 'Rajdhani', sans-serif;
+  --font-data: 'Orbitron', 'Rajdhani', sans-serif;
+  --font-size: 18px;
+  --data-scale: 0.8;
+  --readout-min: 6.1rem;
   --weight-label: 700;
   --weight-data: 700;
   --weight-heavy: 700;
-  --radius: 2px;
-  --radius-sm: 2px;
-  --radius-lg: 2px;
-  --radius-pill: 2px;
-  --label-case: uppercase;
-  --label-spacing: 0.04em;
-  color-scheme: light;
-}
-
-[data-theme='dark'][data-skin='spy'],
-[data-theme='dark'] [data-skin='spy'] {
-  --map-filter: grayscale(1) invert(1) contrast(1.1) brightness(0.75) sepia(0.25) hue-rotate(170deg) saturate(1.4);
-  --map-bg: #0a0e13;
-  --map-ink: #e6edf3;
-  --map-halo: #05070a;
-  --map-ctl-bg: #0c1117;
-  --map-ctl-fg: #e6edf3;
-  --keep-clear: #ff4058;
-  --mark: #3ee08f;
-  --gps: #4da3ff;
-  --trees: #2f6b4a;
-  --warn-ink: #000000;
-  --bg: #05070a;
-  --fg: #e6edf3;
-  --muted: #8d99a6;
-  --card: #0c1117;
-  --line: #8293a6;
-  --accent: #19d3c5;
-  --accent-fg: #001312;
-  --ok: #3ee08f;
-  --ok-bg: #062b19;
-  --warn: #000000;
-  --warn-bg: #ffb020;
-  --bad: #ffffff;
-  --bad-bg: #d1243a;
-  --impact: #ff4058;
-  --e50: #ff4058;
-  --e90: #ffa040;
-  --track: #19d3c5;
-  --target: #c38bff;
-  --ground: #1d2630;
-  --series-1: #1aa7b5;
-  --series-2: #d9702a;
-  --series-3: #9068e0;
-  --grid: #1f2933;
-  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-label: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
-  --font-data: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
-  --font-size: 17px;
-  --data-scale: 0.9;
-  --readout-min: 6.6rem;
-  --weight-label: 600;
-  --weight-data: 600;
-  --weight-heavy: 600;
   --radius: 0;
   --radius-sm: 0;
   --radius-lg: 0;
   --radius-pill: 0;
   --label-case: uppercase;
-  --label-spacing: 0.1em;
+  --label-spacing: 0.12em;
+  color-scheme: light;
+}
+
+[data-theme='dark'][data-skin='spy'],
+[data-theme='dark'] [data-skin='spy'] {
+  --map-filter: grayscale(1) invert(1) brightness(1.3) contrast(1.5) sepia(1) hue-rotate(155deg) saturate(5) brightness(0.5);
+  --map-bg: #03101c;
+  --map-ink: #e3fbff;
+  --map-halo: #02070f;
+  --map-ctl-bg: #071425;
+  --map-ctl-fg: #e3fbff;
+  --keep-clear: #ff4778;
+  --mark: #3dffa8;
+  --gps: #7aa8ff;
+  --trees: #1b6b5a;
+  --warn-ink: #000000;
+  --bg: #02070f;
+  --fg: #e3fbff;
+  --muted: #86b9c9;
+  --card: #071425;
+  --line: #31e1f7;
+  --accent: #31e1f7;
+  --accent-fg: #001a1f;
+  --ok: #3dffa8;
+  --ok-bg: #03291c;
+  --warn: #000000;
+  --warn-bg: #ffb547;
+  --bad: #14000a;
+  --bad-bg: #ff4778;
+  --impact: #ff4778;
+  --e50: #ff4778;
+  --e90: #ffb547;
+  --track: #31e1f7;
+  --target: #c48bff;
+  --ground: #0d2236;
+  --series-1: #1aa7b5;
+  --series-2: #d9702a;
+  --series-3: #9068e0;
+  --grid: #11263a;
+  --font-ui: 'Rajdhani', 'Arial Narrow', sans-serif;
+  --font-label: 'Orbitron', 'Rajdhani', sans-serif;
+  --font-data: 'Orbitron', 'Rajdhani', sans-serif;
+  --font-size: 18px;
+  --data-scale: 0.8;
+  --readout-min: 6.1rem;
+  --weight-label: 700;
+  --weight-data: 700;
+  --weight-heavy: 700;
+  --radius: 0;
+  --radius-sm: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  --label-case: uppercase;
+  --label-spacing: 0.12em;
   color-scheme: dark;
 }
 
@@ -444,13 +444,15 @@
   --tag-fg: #ffffff;
 }
 [data-skin='spy'] {
-  --tag-bg: transparent;
-  --tag-fg: #a8161f;
+  --tag-bg: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 22%, transparent) 30% 70%, transparent);
+  --tag-fg: var(--accent);
+  --glow: 0 0 6px color-mix(in srgb, var(--accent) 35%, transparent);
+  --hex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17.32' height='30'%3E%3Cpath d='M8.66 0L17.32 5L17.32 15L8.66 20L0 15L0 5ZM0 15L8.66 20L8.66 30L0 35L-8.66 30L-8.66 20ZM17.32 15L25.98 20L25.98 30L17.32 35L8.66 30L8.66 20Z' fill='none' stroke='%23005fcc' stroke-opacity='0.09'/%3E%3C/svg%3E");
 }
 [data-theme='dark'][data-skin='spy'],
 [data-theme='dark'] [data-skin='spy'] {
-  --tag-bg: #ff8c00;
-  --tag-fg: #000000;
+  --glow: 0 0 8px color-mix(in srgb, var(--accent) 75%, transparent), 0 0 2px var(--accent);
+  --hex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17.32' height='30'%3E%3Cpath d='M8.66 0L17.32 5L17.32 15L8.66 20L0 15L0 5ZM0 15L8.66 20L8.66 30L0 35L-8.66 30L-8.66 20ZM17.32 15L25.98 20L25.98 30L17.32 35L8.66 30L8.66 20Z' fill='none' stroke='%2331e1f7' stroke-opacity='0.10'/%3E%3C/svg%3E");
 }
 [data-skin='retro'] {
   --tag-bg: var(--line);
@@ -515,87 +517,88 @@
   background-attachment: local;
 }
 
-/* --- Spy, dark: an agency display with corner brackets and monospace caps --------------- */
+/* --- Spy: movie-gadget tech. Holographic cyan by night, frosted glass by day ----------- */
 
-:root[data-skin='spy'][data-theme='dark'] .card,
-:root[data-skin='spy'][data-theme='dark'] .readout,
-:root[data-skin='spy'][data-theme='dark'] .arc-card,
-[data-theme='dark'] .skin-tile[data-skin='spy'] .skin-tile-readout {
+/* Chamfered panels and buttons: corners cut off, with the cut edge drawn in. */
+:root[data-skin='spy'] :is(.card, .arc-card, .cue),
+.skin-tile[data-skin='spy'] .skin-tile-readout {
+  --c: 14px;
+  --edge: var(--line);
   border-width: 1px;
-  border-color: color-mix(in srgb, var(--line) 55%, transparent);
-  background:
-    linear-gradient(var(--accent) 0 0) left top / 12px 2px,
-    linear-gradient(var(--accent) 0 0) left top / 2px 12px,
-    linear-gradient(var(--accent) 0 0) right top / 12px 2px,
-    linear-gradient(var(--accent) 0 0) right top / 2px 12px,
-    linear-gradient(var(--accent) 0 0) left bottom / 12px 2px,
-    linear-gradient(var(--accent) 0 0) left bottom / 2px 12px,
-    linear-gradient(var(--accent) 0 0) right bottom / 12px 2px,
-    linear-gradient(var(--accent) 0 0) right bottom / 2px 12px,
-    var(--card);
+  clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c));
+  background-image:
+    linear-gradient(135deg, transparent calc(50% - 1px), var(--edge) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(135deg, transparent calc(50% - 1px), var(--edge) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px));
+  background-position: left top, right bottom;
+  background-size: var(--c) var(--c);
   background-repeat: no-repeat;
 }
-:root[data-skin='spy'][data-theme='dark'] .arc-card.selected {
-  border-color: var(--accent);
+.skin-tile[data-skin='spy'] .skin-tile-readout {
+  --c: 8px;
 }
-:root[data-skin='spy'][data-theme='dark'] .btn {
+:root[data-skin='spy'] .readout {
+  --c: 12px;
   border-width: 1px;
+  clip-path: polygon(0 0, calc(100% - var(--c)) 0, 100% var(--c), 100% 100%, 0 100%);
+  background-image: linear-gradient(45deg, transparent calc(50% - 1px), var(--line) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px));
+  background-position: right top;
+  background-size: var(--c) var(--c);
+  background-repeat: no-repeat;
 }
-:root[data-skin='spy'][data-theme='dark'] .btn-primary {
+:root[data-skin='spy'] .btn {
+  --c: 10px;
+  --edge: var(--line);
+  clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c));
+  background-image:
+    linear-gradient(135deg, transparent calc(50% - 1.5px), var(--edge) calc(50% - 1.5px) calc(50% + 1.5px), transparent calc(50% + 1.5px)),
+    linear-gradient(135deg, transparent calc(50% - 1.5px), var(--edge) calc(50% - 1.5px) calc(50% + 1.5px), transparent calc(50% + 1.5px));
+  background-position: left top, right bottom;
+  background-size: var(--c) var(--c);
+  background-repeat: no-repeat;
+}
+:root[data-skin='spy'] .btn-primary {
+  --edge: var(--accent);
+}
+:root[data-skin='spy'] .arc-card.selected {
+  --edge: var(--accent);
+  box-shadow: none;
   border-width: 2px;
 }
-:root[data-skin='spy'][data-theme='dark'] .readout-label {
+:root[data-skin='spy'] .readout-label {
   color: var(--accent);
 }
-:root[data-skin='spy'][data-theme='dark'] h2::before {
-  content: '// ';
-  color: var(--accent);
+:root[data-skin='spy'] h2::before {
+  content: '';
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-right: 0.5em;
+  background: var(--accent);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
 }
-:root[data-skin='spy'][data-theme='dark'] .tabbar {
+:root[data-skin='spy'] .tabbar {
   border-top-width: 1px;
+  border-top-color: var(--accent);
 }
-:root[data-skin='spy'][data-theme='dark'] .tabbar button.active {
-  background: none;
+:root[data-skin='spy'] .tabbar button.active {
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 22%, transparent), transparent);
   color: var(--accent);
   box-shadow: inset 0 3px 0 var(--accent);
 }
-
-/* --- Spy, light: a typewritten dossier with a rubber stamp ------------------------------ */
-
-:root[data-skin='spy']:not([data-theme='dark']) .card {
-  border-width: 1px;
-  box-shadow: 3px 3px 0 color-mix(in srgb, var(--line) 22%, transparent);
+:root[data-skin='spy'] :is(h2, .readout-value, .arc-main, .cue, .skin-tag, .tabbar button.active, .flight-time) {
+  text-shadow: var(--glow);
 }
-:root[data-skin='spy']:not([data-theme='dark']) h2 {
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 4px;
+/* Hex grid and a soft light from the top behind the panel. */
+:root[data-skin='spy'] .panel {
+  background-image: radial-gradient(ellipse 90% 40% at 50% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent), var(--hex);
+  background-attachment: local;
 }
-/* Readouts as typed form fields: a rule under each, no box. */
-:root[data-skin='spy']:not([data-theme='dark']) .readout {
-  border-width: 0 0 2px;
-  border-radius: 0;
+:root[data-skin='spy']:not([data-theme='dark']) :is(.card, .readout) {
+  background-color: color-mix(in srgb, var(--card) 88%, transparent);
 }
-/* The rubber stamp sits bottom-left, clear of the hints, controls and attribution. */
-:root[data-skin='spy']:not([data-theme='dark']) .skin-tag {
-  top: auto;
-  right: auto;
-  bottom: 18px;
-  left: 12px;
-  height: auto;
-  padding: 2px 10px;
-  font-size: 14px;
-  line-height: 1.3;
-  transform: rotate(-6deg);
-  border: 3px double var(--tag-fg);
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
-  opacity: 0.9;
-}
-:root[data-skin='spy']:not([data-theme='dark']) .skin-tag-rest {
-  display: none;
-}
-:root[data-skin='spy']:not([data-theme='dark']) .map-wrap.has-tag .leaflet-top {
-  top: 0;
+:root[data-skin='spy'] .skin-tag {
+  letter-spacing: 0.3em;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 /* --- 1980s military: green-screen terminal (dark) and LCD handset (light) --------------- */
@@ -637,7 +640,7 @@
   border-style: double;
   border-width: 4px;
 }
-:root[data-skin='retro'][data-theme='dark'] .btn {
+:root[data-skin='retro'][data-theme='dark'] .btn:not(.btn-primary, .btn-warn) {
   background: transparent;
 }
 :root[data-skin='retro'][data-theme='dark'] .btn:active {
@@ -771,6 +774,13 @@
 }
 .skin-tile[data-skin='spy'] .skin-tile-tag {
   letter-spacing: 0.04em;
+  font-size: 8px;
+}
+.skin-tile[data-skin='spy'] {
+  background-image: var(--hex);
+}
+.skin-tile[data-skin='spy'] :is(.skin-tile-value, .skin-tile-tag) {
+  text-shadow: var(--glow);
 }
 [data-theme='dark'] .skin-tile[data-skin='retro'] {
   background:

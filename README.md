@@ -41,7 +41,7 @@ A phone web app that clips to a potato cannon's barrel and shows, live on a map,
 - **Shot statistics**: a scatter of where shots landed relative to their predictions (with mean miss, CEP and 90% radius), and launch speed per shot through the day, each with a table view.
 - **Target games**: place a target, add players, and score each shot on rings (2 m = 10 points, 5 m = 5, 10 m = 2). Turns rotate automatically and the leaderboard breaks ties on the closest landing.
 - **Shot card**: a shareable 1080 × 1350 image of a shot or the current prediction, with the map, the arc and the numbers.
-- **Skins**: plain (the default), modern military, spy and 1980s military, each with a light (day) and dark (night) version. See Skins below.
+- **Skins**: plain (the default), modern military, spy and 1980s military, each with a light (day) and dark (night) version, with fun effects (radar sweeps, scan lines, lock-on flashes and sounds) and a matching camera view. See Skins below.
 - **Private**: no server and no accounts. Everything stays in IndexedDB on the phone, with JSON and CSV export.
 
 ## Quick start
@@ -103,10 +103,36 @@ Pick one in Setup › Skin, which shows a live preview of each. The Light or dar
 | --- | --- | --- | --- |
 | Plain | White, black, blue | Black, white, blue | — |
 | Modern military | Sand and olive drab, condensed caps | Night olive | "Unclassified" strip, angles in mils too, countdown calls "Shot, over" and "Splash, over" |
-| Spy | Typewritten dossier with a "Top secret" stamp | Agency display with corner brackets | Countdown says "Package away" and "Delivered" |
+| Spy | Frosted glass and blue light | Glowing holographic cyan | Movie-gadget look: angled panels, hex grid, Orbitron digits; countdown says "Package away" and "Delivered" |
 | 1980s military | LCD handset with seven-segment digits | Green-screen terminal with scan lines | "NATO restricted" strip, mils, "Shot" and "Splash" calls |
 
 Mils are NATO mils (6,400 to a circle). "Splash" comes 5 s before the predicted landing, as an artillery fire direction centre calls it, or halfway through shorter flights; the landing itself is a tone. Safety colours stay the same in every skin: warnings are amber, dangers and the keep-clear line red. Every skin's text meets WCAG AA contrast (body text 7:1), and each chart palette passes the colour-vision checks on its own card colour.
+
+### Effects
+
+Each skin except plain has effects, on by default (Setup › Skin › Effects):
+
+| Skin | On the map | Landing point | Flashes (lock, fire, landing) | Lock-on sound |
+| --- | --- | --- | --- | --- |
+| Modern military | HUD corner frame, map-sheet grid, blinking LIVE with UTC time | Radar sweep round the launch point; lock-on brackets closing on the landing | TARGET LOCKED, SHOT OUT, SPLASH | Two pips and a high tone |
+| Spy | Hex grid, a laser scan sweeping down the map, HUD corners | Sonar pings from the launch point; holographic rings turning round the landing and the target | LOCK ACQUIRED, PACKAGE AWAY, DELIVERED (flickers on like a hologram) | A rising sweep |
+| 1980s military | Night: rolling CRT bar, flicker and glass vignette. Day: LCD pixel grid | PPI radar scope with phosphor afterglow (the LCD one moves in steps); a blinking box on the landing | TARGET LOCKED, ROUND AWAY, IMPACT in blinking reverse video | An 8-bit arpeggio |
+
+Sounds play only when Audio aiming cues is on. Effects never cover the controls or catch taps. Animations stop, leaving the static look, when the phone is set to reduce motion.
+
+### Camera view
+
+<img src="docs/skins-camera.png" width="760" alt="The camera view in each skin, by day (top row) and night (bottom row)">
+
+The camera view follows the skin too:
+
+| Skin | Picture | Overlay |
+| --- | --- | --- |
+| Modern military | Thermal "white hot" by day, green night vision by night | Mil-scale sight, corner frame, blinking REC |
+| Spy | Cool blue hologram tint | Glowing cyan path, ring sight with a turning dashed ring, hex grid, laser scan |
+| 1980s military | Pocket LCD TV by day, green phosphor monitor by night | Boxed cross sight, scan lines and a rolling bar (night) or pixel grid (day) |
+
+The screenshots use Chromium's test-pattern camera; on a phone it is the real scene.
 
 The skin fonts are fetched only when a skin uses them and are then kept for offline use.
 
@@ -215,4 +241,4 @@ Places where the implementation adds to or departs from the technical spec:
 - LIDAR: © Environment Agency copyright and/or database right 2026. All rights reserved. Used under the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/), credited on the map whenever LIDAR is in use. The test fixtures are small extracts of the same data.
 - Weather: [Open-Meteo](https://open-meteo.com/en/docs).
 - Declination: World Magnetic Model 2025 via [`geomagnetism`](https://www.npmjs.com/package/geomagnetism).
-- Skin fonts, all under the [SIL Open Font License 1.1](https://openfontlicense.org): Barlow Condensed, IBM Plex Mono, Courier Prime and VT323 (via [Fontsource](https://fontsource.org)), and DSEG7 Classic by keshikan (via [`dseg`](https://github.com/keshikan/DSEG)).
+- Skin fonts, all under the [SIL Open Font License 1.1](https://openfontlicense.org): Barlow Condensed, Orbitron, Rajdhani and VT323 (via [Fontsource](https://fontsource.org)), and DSEG7 Classic by keshikan (via [`dseg`](https://github.com/keshikan/DSEG)).

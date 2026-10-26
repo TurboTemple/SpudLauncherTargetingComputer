@@ -12,6 +12,7 @@ import { aimingTone } from './ui/audio';
 import './ui/fonts';
 import './ui/styles.css';
 import './ui/skins.css';
+import './ui/fx.css';
 
 // Apply the last skin at once, so the loading screen does not flash the plain one.
 try {
